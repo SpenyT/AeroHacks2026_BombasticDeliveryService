@@ -25,12 +25,14 @@ class DroneController:
     def __init__(self ) -> None:
         self.enabled = asyncio.Event()
         self.shutdown = asyncio.Event()
+        self.baseline_thrust = 120
 
     def send_pid_commands(self, roll, pitch, yaw_rate, thrust):
         drone_driver.set_roll(roll)
         drone_driver.set_pitch(pitch)
         drone_driver.set_yaw(yaw_rate)
-        self.set_baseline_thrust(int(thrust))
+        self.baseline_thrust = thrust
+        self.send_baseline_thrust()
 
     def send_position_target(self, x, y, z, yaw): ...
     def send_external_pose(self, pose): ...
@@ -49,8 +51,7 @@ class DroneController:
         self.turn_on_leds()
 
         self.enabled.set()
-
-        self.set_baseline_thrust(120)
+        self.send_baseline_thrust()
 
     def stop(self) -> None:
         self.emergency_stop()
@@ -65,72 +66,197 @@ class DroneController:
         drone_driver.red_LED_on()
         drone_driver.green_LED_on()
 
-    def set_baseline_thrust(self, thrust: int) -> None:
-        baseline_thrust = drone_driver.Thrust(A=thrust, B=thrust, C=thrust, D=thrust)
+    def send_baseline_thrust(self) -> None:
+        baseline_thrust = drone_driver.Thrust(A=self.baseline_thrust, B=self.baseline_thrust, C=self.baseline_thrust, D=self.baseline_thrust)
         drone_driver.manual_thrusts(baseline_thrust)
+
+    def increase_thrust(self, delta: int) -> None:
+        self.baseline_thrust += delta
+        self.send_baseline_thrust()
 
     def emergency_stop(self) -> None:
         drone_driver.emergency_stop()
 
     def close_connection(self) -> None:
         drone_driver.close()
+    
+
 
         
-async def keyboard_task(state: DroneController) -> None:
+# async def keyboard_task(controller: DroneController) -> None:
+#     """
+#     Reads single key presses asynchronously.
+
+#     Keys:
+#       w -> forward
+#       s -> backward
+#       d -> right
+#       a -> left
+#       j -> clockwize yaw
+#       k -> counterclockwize yaw
+#       i -> up
+#       o -> down
+
+#       1 -> start
+#       2 -> stop
+#       3 -> status
+#       q -> quit
+#       h -> help
+#     """
+
+#     log("Keyboard commands: s=start | x=stop | d=status | q=quit | h=help")
+
+#     loop = asyncio.get_running_loop()
+
+#     # Save terminal settings
+#     fd = sys.stdin.fileno()
+#     old_settings = termios.tcgetattr(fd)
+
+#     try:
+#         # Set raw mode so keypresses are delivered immediately
+#         tty.setraw(fd)
+
+#         while not controller.shutdown.is_set():
+#             char = await loop.run_in_executor(None, sys.stdin.read, 1)
+#             cmd = char.lower()
+
+#             match cmd:
+#                 case "w":
+#                     log("[kbd] forward")
+#                     controller.send_pid_commands(roll=0, pitch=-10, yaw_rate=0, thrust=0)
+
+#                 case "s"
+
+#             if cmd == "s":
+#                 controller.start()
+#                 log("[kbd] control ENABLED")
+
+#             elif cmd == "x":
+#                 controller.stop()
+#                 log("[kbd] control DISABLED")
+
+#             elif cmd == "d":
+#                 log(
+#                     f"[kbd] running={controller.is_running()} "
+#                     f"shutdown={controller.shutdown.is_set()}"
+#                 )
+
+#             elif cmd == "q":
+#                 log("[kbd] shutting down")
+#                 controller.request_shutdown()
+
+#             elif cmd == "h":
+#                 log("Keys: s=start | x=stop | d=status | q=quit | h=help")
+
+#             else:
+#                 pass
+
+#     finally:
+#         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+
+async def keyboard_task(controller: DroneController) -> None:
     """
     Reads single key presses asynchronously.
 
-    Keys:
-      s -> start
-      x -> stop
-      d -> status
-      q -> quit
-      h -> help
+    Keys
+    ----
+    w : forward
+    s : backward
+    d : right
+    a : left
+    j : clockwise yaw
+    k : counter-clockwise yaw
+    i : up
+    o : down
+
+    1 : start controller
+    2 : stop controller
+    3 : status
+    q : quit
+    h : help
     """
 
-    log("Keyboard commands: s=start | x=stop | d=status | q=quit | h=help")
+    log("Keyboard commands: w/s/a/d move | j/k yaw | i/o thrust | 1 start | 2 stop | 3 status | q quit")
 
     loop = asyncio.get_running_loop()
 
-    # Save terminal settings
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
 
     try:
-        # Set raw mode so keypresses are delivered immediately
         tty.setraw(fd)
 
-        while not state.shutdown.is_set():
+        while not controller.shutdown.is_set():
             char = await loop.run_in_executor(None, sys.stdin.read, 1)
             cmd = char.lower()
 
-            if cmd == "s":
-                state.start()
-                log("[kbd] control ENABLED")
+            match cmd:
 
-            elif cmd == "x":
-                state.stop()
-                log("[kbd] control DISABLED")
+                # movement
+                case "w":
+                    log("[kbd] forward")
+                    controller.send_pid_commands(roll=0, pitch=-10, yaw_rate=0, thrust=0)
 
-            elif cmd == "d":
-                log(
-                    f"[kbd] running={state.is_running()} "
-                    f"shutdown={state.shutdown.is_set()}"
-                )
+                case "s":
+                    log("[kbd] backward")
+                    controller.send_pid_commands(roll=0, pitch=10, yaw_rate=0, thrust=0)
 
-            elif cmd == "q":
-                log("[kbd] shutting down")
-                state.request_shutdown()
+                case "a":
+                    log("[kbd] left")
+                    controller.send_pid_commands(roll=-10, pitch=0, yaw_rate=0, thrust=0)
 
-            elif cmd == "h":
-                log("Keys: s=start | x=stop | d=status | q=quit | h=help")
+                case "d":
+                    log("[kbd] right")
+                    controller.send_pid_commands(roll=10, pitch=0, yaw_rate=0, thrust=0)
 
-            else:
-                pass
+                # yaw
+                case "j":
+                    log("[kbd] yaw clockwise")
+                    controller.send_pid_commands(roll=0, pitch=0, yaw_rate=10, thrust=0)
+
+                case "k":
+                    log("[kbd] yaw counter-clockwise")
+                    controller.send_pid_commands(roll=0, pitch=0, yaw_rate=-10, thrust=0)
+
+                # altitude
+                case "i":
+                    log("[kbd] up")
+                    controller.increase_thrust(10)
+
+                case "o":
+                    log("[kbd] down")
+                    controller.increase_thrust(-10)
+
+                # controller state
+                case "1":
+                    controller.start()
+                    log("[kbd] control ENABLED")
+
+                case "2":
+                    controller.stop()
+                    log("[kbd] control DISABLED")
+
+                case "3":
+                    log(
+                        f"[kbd] running={controller.is_running()} "
+                        f"shutdown={controller.shutdown.is_set()}"
+                    )
+
+                case "q":
+                    log("[kbd] shutting down")
+                    controller.request_shutdown()
+
+                case "h":
+                    log(
+                        "Keys: w/s/a/d move | j/k yaw | i/o thrust | "
+                        "1 start | 2 stop | 3 status | q quit"
+                    )
+
+                case _:
+                    pass
 
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-
 
 
 async def position_consume_task(state: DroneController, position_queue: asyncio.Queue[PositionEstimate] ) -> None:

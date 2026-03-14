@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from matplotlib.patches import Circle, Polygon
 from matplotlib.widgets import Slider
+import numpy as np
 
 
 def load_json(path):
@@ -343,7 +344,7 @@ def main():
         if npc_points:
             npc_scatter.set_offsets(npc_points)
         else:
-            npc_scatter.set_offsets([])
+            npc_scatter.set_offsets(np.empty((0, 2)))
 
         status_text.set_text(
             f"time={t}\n"
