@@ -5,7 +5,7 @@ from google import genai
 from google.genai import types
 
 
-_MODEL = "gemini-2.5-flash"
+_MODEL = "gemini-3.1-flash-image-preview"
 _client = None
 
 
@@ -27,12 +27,13 @@ def _frame_to_bytes(frame) -> bytes:
 _BBOX_SCHEMA = types.Schema(
     type=types.Type.OBJECT,
     properties={
+        "reasoning": types.Schema(type=types.Type.STRING),
         "y_min": types.Schema(type=types.Type.INTEGER),
         "x_min": types.Schema(type=types.Type.INTEGER),
         "y_max": types.Schema(type=types.Type.INTEGER),
         "x_max": types.Schema(type=types.Type.INTEGER),
     },
-    required=["y_min", "x_min", "y_max", "x_max"],
+    required=["reasoning", "y_min", "x_min", "y_max", "x_max"],
 )
 
 
@@ -40,30 +41,39 @@ def request_bound_box(frame) -> tuple:
     img_h, img_w = frame.shape[:2]
 
     prompt = (
-        f"This image is {img_w}x{img_h} pixels. It shows a wooden-framed cube structure "
-        "with clear plastic sheeting stapled to the frame. "
-        "Detect the back panel opening — the rectangular open area on the back face of the enclosure, "
-        "bounded above by the top horizontal wood rail and below by the plywood base. "
-        "Return the bounding box coordinates normalized to 0-1000."
+        f"This image is {img_w}x{img_h} pixels. I need a precise bounding box for the "
+        "rectangular inner opening of the REAR-MOST wooden frame. "
+        "\n\nTo find the correct coordinates, follow these landmarks:"
+        "1. Top-Left corner: The intersection of the inner edge of the back-left post and the bottom edge of the back-top rail."
+        "2. Bottom-Right corner: The intersection of the inner edge of the back-right post and the top surface of the plywood base."
+        "\n\nStrict Constraints:"
+        "- Only include the empty space (the void)."
+        "- DO NOT include any part of the front frame, the plastic sheeting, or the floor outside the cube."
+        "- The box must be 'shrunk' to touch the inside edges of the wood."
     )
 
     client = _get_client()
     image_part = types.Part.from_bytes(data=_frame_to_bytes(frame), mime_type="image/jpeg")
     response = client.models.generate_content(
-        model=_MODEL,
-        contents=[image_part, prompt],
-        config=types.GenerateContentConfig(
-            temperature=0.0,
-            response_mime_type="application/json",
-            response_schema=_BBOX_SCHEMA,
+    model=_MODEL,
+    contents=[image_part, prompt],
+    config=types.GenerateContentConfig(
+        temperature=0.0,
+        response_mime_type="application/json",
+        response_schema=_BBOX_SCHEMA,
+        thinking_config=types.ThinkingConfig(
+            thinking_level="HIGH"
         ),
-    )
+    ),
+)
 
     data = json.loads(response.text)
     y_min = data["y_min"]
     x_min = data["x_min"]
     y_max = data["y_max"]
     x_max = data["x_max"]
+
+    print("reasoning: ", data["reasoning"])
 
     x = int(x_min / 1000 * img_w)
     y = int(y_min / 1000 * img_h)
