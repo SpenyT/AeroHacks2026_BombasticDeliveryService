@@ -3,7 +3,7 @@ import cv2
 
 
 from .video_input import video_input
-from .cv import test_bound_box
+from .cv import *
 
 def turbulence():
     print("Initiating Turbulence Dampening Algorithm...")
@@ -37,4 +37,4 @@ def turbulence():
     # cam2.release()
     # cv2.destroyAllWindows()
 
-    test_bound_box()
+    test_drone_pos()

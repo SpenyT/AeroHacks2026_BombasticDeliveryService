@@ -17,41 +17,6 @@ def detect_bound_box(frame):
         print(f"[detect_bound_box] failed: {e}")
         return None
 
-
-# ehhhhh... please test Tim, might have to alter hsv
-# FYI, I chose green and blue since they are opposite on hsv cone
-def detect_drone(frame, color: str = "green"):
-    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-
-    if color == "green":
-        mask = cv2.inRange(hsv, np.array([40, 120, 70]), np.array([80, 255, 255]))
-    elif color == "blue":
-        mask = cv2.inRange(hsv, np.array([100, 120, 70]), np.array([130, 255, 255]))
-    elif color == "red":
-        mask = cv2.inRange()
-    else:
-        print(f"Unknown color: {color}, use 'green' or 'blue'")
-        return None
-
-    kernel = np.ones((5, 5), np.uint8)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-    mask = cv2.dilate(mask, kernel, iterations=2)
-
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    if not contours:
-        return None
-
-    v_channel = hsv[:, :, 2]
-    brightest = max(contours, key=lambda cnt: cv2.mean(v_channel, mask=cv2.drawContours(
-        np.zeros_like(v_channel), [cnt], -1, 255, -1))[0])
-
-    M = cv2.moments(brightest)
-    if M["m00"] == 0:
-        return None
-
-    return (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
-
-
 def get_bbox_center(bbox):
     if bbox is None:
         return None
@@ -59,6 +24,91 @@ def get_bbox_center(bbox):
     return (x + w // 2, y + h // 2)
 
 
+# ehhhhh... please test Tim, might have to alter hsv
+def detect_led(frame, color_str):
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+    if color_str == "red":
+        lower1 = np.array([0, 120, 200])
+        upper1 = np.array([10, 255, 255])
+        lower2 = np.array([170, 120, 200])
+        upper2 = np.array([180, 255, 255])
+        mask = cv2.inRange(hsv, lower1, upper1) | cv2.inRange(hsv, lower2, upper2)
+    elif color_str == "green":
+        lower = np.array([35, 120, 200])
+        upper = np.array([85, 255, 255])
+        mask = cv2.inRange(hsv, lower, upper)
+    elif color_str == "blue":
+        lower = np.array([100, 120, 200])
+        upper = np.array([130, 255, 255])
+        mask = cv2.inRange(hsv, lower, upper)
+    elif color_str == "white":
+        lower_white = np.array([0, 0, 240])
+        upper_white = np.array([180, 60, 255])
+        lower_cyan = np.array([80, 30, 220])
+        upper_cyan = np.array([100, 150, 255])
+        mask = cv2.inRange(hsv, lower_white, upper_white) | cv2.inRange(hsv, lower_cyan, upper_cyan)
+
+    else:
+        return None
+    
+    # removes smaller blobs of color - fyi DONT TOUCH *smacks hand*
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    mask = cv2.dilate(mask, kernel, iterations=1)
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if not contours:
+        return None
+
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    best_contour = None
+    best_score = 0
+
+    for c in contours:
+        area = cv2.contourArea(c)
+        if area < 2 or area > 500: # 500 not necessary prob, but wanted to remove laptop in background when I was testing so... (maybe remove?)
+            continue
+        c_mask = np.zeros(gray.shape, dtype=np.uint8)
+        cv2.drawContours(c_mask, [c], -1, 255, -1)
+        mean_val = cv2.mean(gray, mask=c_mask)[0]
+        score = area * mean_val
+        if score > best_score:
+            best_score = score
+            best_contour = c
+
+    if best_contour is None:
+        return None
+
+    M = cv2.moments(best_contour)
+    if M["m00"] == 0:
+        return None
+
+    cx = int(M["m10"] / M["m00"])
+    cy = int(M["m01"] / M["m00"])
+
+    return (cx, cy)
+
+
+def detect_drone(frame, colors):
+    pos1 = detect_led(frame, colors[0])
+    pos2 = detect_led(frame, colors[1])
+
+    if pos1 is None or pos2 is None:
+        return None
+
+    cx = (pos1[0] + pos2[0]) // 2
+    cy = (pos1[1] + pos2[1]) // 2
+
+    return (pos1, pos2, (cx, cy))
+
+
+# easier to use a dict honestly
+COLOR_BGR = {
+    "red": (0, 0, 255),
+    "green": (0, 255, 0),
+    "blue": (255, 0, 0),
+    "white": (255, 255, 200), # not actually white LOL
+}
 
 
 # DRAW FUNCS
@@ -94,7 +144,18 @@ def draw_overlay(frame, bound_box, drone_pos=None, center_pos=None):
     frame = draw_center_overlay(frame, center_pos)
     return frame
 
+def draw_led_overlay(frame, led_pos, color):
+    if led_pos is None:
+        cv2.putText(frame, f"{color}: not found", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+        return frame
 
+    x, y = led_pos
+    bgr = COLOR_BGR.get(color, (255, 255, 255))
+    radius = 10
+    thickness = 2
+
+    cv2.circle(frame, (x, y), radius, bgr, thickness)
+    return frame
 
 # TEST FUNCS
 def test_bound_box():
@@ -112,5 +173,36 @@ def test_bound_box():
         print("No box detected.")
     
     cv2.imshow("Result", resize(frame))
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+
+def test_drone_pos():
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    img_path = os.path.join(base_dir, "test_images", "drone_test_bg.jpg")
+    frame = cv2.imread(img_path)
+
+    frame = resize(frame)
+
+    colors = ("blue", "green")
+    blue_pos, green_pos, drone_pos = detect_drone(frame, colors)
+
+    print(f"Blue LED:   {blue_pos}")
+    print(f"Green LED:  {green_pos}")
+    print(f"Drone center: {drone_pos}")
+
+    overlay = frame.copy()
+    draw_led_overlay(overlay, blue_pos, "blue")
+    draw_led_overlay(overlay, green_pos, "green")
+
+    if drone_pos is not None:
+        cx, cy = drone_pos
+        cv2.circle(overlay, (cx, cy), 8, (0, 255, 255), -1)
+
+    out_path = os.path.join(base_dir, "test_images", "drone_test_debug.jpg")
+    cv2.imwrite(out_path, overlay)
+    print(f"Saved to: {out_path}")
+
+    cv2.imshow("Drone Detection", overlay)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
