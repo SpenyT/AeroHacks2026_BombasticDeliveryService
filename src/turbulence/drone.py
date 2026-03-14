@@ -74,7 +74,6 @@ async def keyboard_task(state: DroneState) -> None:
         tty.setraw(fd)
 
         while not state.shutdown.is_set():
-            # Wait for a single character without blocking event loop
             char = await loop.run_in_executor(None, sys.stdin.read, 1)
             cmd = char.lower()
 
@@ -100,11 +99,9 @@ async def keyboard_task(state: DroneState) -> None:
                 log("Keys: s=start | x=stop | d=status | q=quit | h=help")
 
             else:
-                # ignore unknown keys
                 pass
 
     finally:
-        # Restore terminal settings
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
 
@@ -150,8 +147,7 @@ async def fake_pose_producer_task(
     state: DroneState,
 ) -> None:
     """
-    Demo producer that simulates another task (e.g. OpenCV pipeline).
-    Replace this with your real camera/vision task.
+    Demo producer that simulates another task.
     """
 
     t0 = time.monotonic()
@@ -168,14 +164,13 @@ async def fake_pose_producer_task(
             valid=True,
         )
 
-        # Drop oldest if queue is full to keep data fresh.
         if pose_queue.full():
             with contextlib.suppress(asyncio.QueueEmpty):
                 _ = pose_queue.get_nowait()
                 pose_queue.task_done()
 
         await pose_queue.put(pose)
-        await asyncio.sleep(0.1)  # 10 Hz producer
+        await asyncio.sleep(0.1)
 
     log("[vision] producer exiting")
 
