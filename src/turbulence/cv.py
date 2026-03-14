@@ -1,5 +1,5 @@
 import cv2
-from .gemini import request_bound_box
+from .gemini import request_bound_box_async
 import numpy as np
 import os
 
@@ -10,17 +10,16 @@ def resize(f):
     return cv2.resize(f, (w, DISPLAY_HEIGHT))
 
 # NOT WORKING 100% BUT WILL BE FIXING IT - Spencer
-def detect_bound_box(frame):
+# NVM, GEMINI GOT IT (LESSS GOOOOOO!)
+async def async_detect_bound_box(frame):
     try:
-        return request_bound_box(frame)
+        return await request_bound_box_async(frame)
     except Exception as e:
         print(f"[detect_bound_box] failed: {e}")
         return None
 
 def get_bbox_center(bbox):
-    if bbox is None:
-        return None
-    x, y, w, h = cv2.boundingRect(bbox)
+    x, y, w, h = bbox
     return (x + w // 2, y + h // 2)
 
 
@@ -138,10 +137,20 @@ def draw_center_overlay(frame, center_pos):
 
 def draw_overlay(frame, bound_box, drone_pos=None, center_pos=None):
     if bound_box is not None:
-        cv2.drawContours(frame, [bound_box], -1, (0, 255, 0), 2)
-    
+        x, y, w, h = bound_box
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
     frame = draw_drone_overlay(frame, drone_pos)
     frame = draw_center_overlay(frame, center_pos)
+
+    if drone_pos is not None and center_pos is not None:
+        cv2.line(frame, center_pos, drone_pos, (0, 0, 255), 2)
+        offset_x = drone_pos[0] - center_pos[0]
+        offset_y = drone_pos[1] - center_pos[1]
+        center_x = (drone_pos[0] + center_pos[0]) // 2
+        center_y = (drone_pos[1] + center_pos[1]) // 2
+        cv2.putText(frame, f"dx:{offset_x} dy:{offset_y}", (center_x + 10, center_y), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
+
     return frame
 
 def draw_led_overlay(frame, led_pos, color):
@@ -163,7 +172,7 @@ def test_bound_box():
     img_path = os.path.join(base_dir, "test_images", "bb_test_1.jpg")
     frame = cv2.imread(img_path)
 
-    box = detect_bound_box(frame)
+    box = async_detect_bound_box(frame)
     
     if box:
         x, y, w, h = box

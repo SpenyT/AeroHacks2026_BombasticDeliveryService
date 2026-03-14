@@ -1,6 +1,7 @@
 import cv2
 import json
 import os
+import asyncio
 from google import genai
 from google.genai import types
 
@@ -73,8 +74,6 @@ def request_bound_box(frame) -> tuple:
     y_max = data["y_max"]
     x_max = data["x_max"]
 
-    print("reasoning: ", data["reasoning"])
-
     x = int(x_min / 1000 * img_w)
     y = int(y_min / 1000 * img_h)
     bw = int((x_max - x_min) / 1000 * img_w)
@@ -84,3 +83,7 @@ def request_bound_box(frame) -> tuple:
         raise RuntimeError(f"Invalid box dimensions: {bw}x{bh}")
 
     return (x, y, bw, bh)
+
+async def request_bound_box_async(frame) -> tuple:
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, request_bound_box, frame)

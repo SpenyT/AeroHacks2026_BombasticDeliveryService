@@ -1,40 +1,74 @@
 import numpy as np
+import asyncio
 import cv2
-
-
+import os
 from .video_input import video_input
+from .pipeline import CameraPipeline
 from .cv import *
+
+DISPLAY_HEIGHT = 480
+
+# options
+SIDE_CAM_INDEX  = 0
+FRONT_CAM_INDEX = 1
+SIDE_CAM_COLORS  = ("", "")
+FRONT_CAM_COLORS = ("", "")
+
+TEST_MODE = True
+
+# FOR TESTING MODE
+LEFT_BBOX         = ()
+LEFT_BBOX_CENTER  = ()
+FRONT_BBOX        = ()
+FRONT_BBOX_CENTER = ()
+
+
+def get_img(img_name: str):
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    img_path = os.path.join(base_dir, "test_images", img_name)
+    return cv2.imread(img_path)
+
+async def run(test_mode=False):
+    if not test_mode:
+        front_cam, side_cam = video_input()
+
+    front_frame = resize(get_img("bb_test_1.jpg") if test_mode else front_cam.read())
+    side_frame = resize(get_img("bb_test_2.jpg") if test_mode else side_cam.read())
+
+    print("Requesting both bounding boxes...")
+    front_bbox, side_bbox = await asyncio.gather(
+        async_detect_bound_box(front_frame.copy()),
+        async_detect_bound_box(side_frame.copy()),
+    )
+
+    front_pipeline = CameraPipeline(front_bbox, get_bbox_center(front_bbox), FRONT_CAM_COLORS)
+    side_pipeline  = CameraPipeline(side_bbox,  get_bbox_center(side_bbox),  SIDE_CAM_COLORS )
+
+    print(f"Running {'(TEST MODE)' if test_mode else ''}... Press 'q' to quit")
+
+    while True:
+        front_frame = resize(get_img("bb_test_1.jpg")) if TEST_MODE else resize(front_cam.read())
+        side_frame  = resize(get_img("bb_test_2.jpg")) if TEST_MODE else resize(side_cam.read())
+
+        front_frame, front_drone = front_pipeline.process(front_frame)
+        side_frame, side_drone = side_pipeline.process(side_frame)
+
+        # Label each feed
+        cv2.putText(front_frame, "FRONT", (10, front_frame.shape[0] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+        cv2.putText(side_frame, "SIDE", (10, side_frame.shape[0] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+
+        # honestly, me and the hommies hate the padding
+        combined = np.hstack([front_frame, side_frame])
+        cv2.imshow("Drone Tracker", combined)
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    front_cam.release()
+    side_cam.release()
+    cv2.destroyAllWindows()
 
 def turbulence():
     print("Initiating Turbulence Dampening Algorithm...")
-    # cam1, cam2 = video_input()
-
-    # print("Press 'q' to quit")
-
-    # TARGET_HEIGHT = 480  # or any height you want
-
-    # while True:
-    #     frame1 = cam1.read()
-    #     frame2 = cam2.read()
-
-    #     if frame1 is None or frame2 is None:
-    #         print("Error: Could not read frame")
-    #         break
-
-    #     # Force both to exact same height
-    #     w1 = int(frame1.shape[1] * TARGET_HEIGHT / frame1.shape[0])
-    #     w2 = int(frame2.shape[1] * TARGET_HEIGHT / frame2.shape[0])
-    #     frame1 = cv2.resize(frame1, (w1, TARGET_HEIGHT))
-    #     frame2 = cv2.resize(frame2, (w2, TARGET_HEIGHT))
-
-    #     combined = np.hstack((frame1, frame2))
-    #     cv2.imshow("Cameras", combined)
-
-    #     if cv2.waitKey(1) & 0xFF == ord('q'):
-    #         break
-
-    # cam1.release()
-    # cam2.release()
-    # cv2.destroyAllWindows()
-
-    test_drone_pos()
+    asyncio.run(run(TEST_MODE))
+    

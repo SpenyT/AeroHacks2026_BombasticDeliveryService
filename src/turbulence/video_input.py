@@ -27,8 +27,8 @@ class Cam():
 
 
 # change index (number) to get correct video feeds
-def video_input():
-    return Cam(0, "Front Cam"), Cam(1, "Side Cam")
+def video_input(side_cam_index=0, back_cam_index=1):
+    return Cam(side_cam_index, "Front Cam"), Cam(back_cam_index, "Side Cam")
 
 
 # TEST FUNC
