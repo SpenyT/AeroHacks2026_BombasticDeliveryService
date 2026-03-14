@@ -14,6 +14,8 @@ import threading
 import time
 from dataclasses import dataclass
 
+from mock_socket import MockSocket
+
 DRONE_IP = "192.168.4.1"
 DRONE_PORT = 8080
 
@@ -27,6 +29,8 @@ _lock = threading.Lock()
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.settimeout(SOCKET_TIMEOUT)
 s.connect((DRONE_IP, DRONE_PORT))
+
+# s = MockSocket()
 
 
 def _clamp(v, lo=MIN_THRUST, hi=MAX_THRUST):
