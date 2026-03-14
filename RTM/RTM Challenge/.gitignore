@@ -4,3 +4,10 @@ env/
 .env/
 ENV/
 VENV/
+.venv/
+venv/
+env/
+.env/
+ENV/
+VENV/
+playback.json
