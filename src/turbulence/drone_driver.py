@@ -319,3 +319,52 @@ def get_i_values():
     """
     resp = msg("geti").split(",")
     return [float(resp[0]), float(resp[1])]
+
+def _red_LED(val): # controls LED light. 1 for on, 0 for off
+    msg("lr" + str(val))
+
+def _blue_LED(val):
+    msg("lb" + str(val))
+
+def _green_LED(val):
+    msg("lg" + str(val))
+
+def red_LED_on():
+    """
+    Turns on the RED LED on the drone
+    """
+    _red_LED(1)
+
+def red_LED_off():
+    """
+    Turns off the RED LED on the drone
+    """
+    _red_LED(0)
+
+
+def blue_LED_on():
+    """
+    Turns on the BLUE LED on the drone
+    """
+    _blue_LED(1)
+
+
+def blue_LED_off():
+    """
+    Turns off the BLUE LED on the drone
+    """
+    _blue_LED(0)
+
+
+def green_LED_on():
+    """
+    Turns on the BLUE LED on the drone
+    """
+    _green_LED(1)
+
+
+def green_LED_off():
+    """
+    Turns off the BLUE LED on the drone
+    """
+    _green_LED(0)

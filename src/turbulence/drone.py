@@ -3,6 +3,7 @@ import asyncio
 import math, time, contextlib, sys, tty
 import termios
 from contextlib import suppress
+import drone_driver
 
 
 
@@ -19,37 +20,63 @@ class PositionEstimate:
     yaw: float
     valid: bool = True
 
-class DroneLink:
-    def connect(self): ...
-    def send_attitude_thrust(self, roll, pitch, yaw_rate, thrust): ...
+
+class DroneController: 
+    def __init__(self ) -> None:
+        self.enabled = asyncio.Event()
+        self.shutdown = asyncio.Event()
+
+    def send_pid_commands(self, roll, pitch, yaw_rate, thrust):
+        drone_driver.set_roll(roll)
+        drone_driver.set_pitch(pitch)
+        drone_driver.set_yaw(yaw_rate)
+        self.set_baseline_thrust(int(thrust))
+
     def send_position_target(self, x, y, z, yaw): ...
     def send_external_pose(self, pose): ...
     def set_param(self, name, value): ...
     def subscribe_log(self, variables, period_ms): ...
 
-
-
-class DroneState: 
-    def __init__(self) -> None:
-        self.enabled = asyncio.Event()
-        self.shutdown = asyncio.Event()
-
     def is_running(self) -> bool:
         return self.enabled.is_set() and not self.shutdown.is_set()
 
     def start(self) -> None:
+        drone_driver.set_mode(drone_driver.Modes.Pid)
+        time.sleep(0.1)
+        assert drone_driver.get_mode() == drone_driver.Modes.Pid, "Failed to set drone mode"
+
+        # TODO move somewhere else, this only needs to be done once
+        self.turn_on_leds()
+
         self.enabled.set()
 
+        self.set_baseline_thrust(120)
+
     def stop(self) -> None:
+        self.emergency_stop()
         self.enabled.clear()
 
     def request_shutdown(self) -> None:
+        self.close_connection()
         self.shutdown.set()
 
+    def turn_on_leds(self):
+        drone_driver.blue_LED_on()
+        drone_driver.red_LED_on()
+        drone_driver.green_LED_on()
 
+    def set_baseline_thrust(self, thrust: int) -> None:
+        baseline_thrust = drone_driver.Thrust(A=thrust, B=thrust, C=thrust, D=thrust)
+        drone_driver.manual_thrusts(baseline_thrust)
+
+    def emergency_stop(self) -> None:
+        drone_driver.emergency_stop()
+
+    def close_connection(self) -> None:
+        drone_driver.close()
 
         
-async def keyboard_task(state: DroneState) -> None:
+async def keyboard_task(state: DroneController) -> None:
     """
     Reads single key presses asynchronously.
 
@@ -106,7 +133,7 @@ async def keyboard_task(state: DroneState) -> None:
 
 
 
-async def position_consume_task(state: DroneState, position_queue: asyncio.Queue[PositionEstimate], link: DroneLink) -> None:
+async def position_consume_task(state: DroneController, position_queue: asyncio.Queue[PositionEstimate] ) -> None:
     """
     Waits for a PositionEstimate from the OpenCV pipeline and sends it to the drone as an external pose.
     """
@@ -138,13 +165,25 @@ async def position_consume_task(state: DroneState, position_queue: asyncio.Queue
 
         log(f"[ctrl] pose t={pose.t:.2f} x={pose.x:.2f} y={pose.y:.2f} z={pose.z:.2f} yaw={pose.yaw:.1f}")
 
-        link.send_position_target(err_x, err_y, err_z, err_yaw)
+        # TODO change this shit
+        kx = 10
+        ky = 10
+        kz = 10
+        kyaw = 10
+        base = 10
+
+        roll_cmd = kx * err_x
+        pitch_imd_cmd = ky * err_y
+        thrust_cmd = base + kz * err_z
+        yaw_rate_cmd = kyaw * err_yaw
+
+        state.send_pid_commands(roll=roll_cmd, pitch=pitch_imd_cmd, yaw_rate=yaw_rate_cmd, thrust=thrust_cmd)
         
 
 
 async def fake_pose_producer_task(
     pose_queue: asyncio.Queue[PositionEstimate],
-    state: DroneState,
+    state: DroneController,
 ) -> None:
     """
     Demo producer that simulates another task.
@@ -176,13 +215,13 @@ async def fake_pose_producer_task(
 
 
 async def main() -> None:
-    state = DroneState()
+    state = DroneController()
 
     pose_queue: asyncio.Queue[PositionEstimate] = asyncio.Queue(maxsize=10)
 
     tasks = [
         asyncio.create_task(keyboard_task(state), name="Keyboard"),
-        asyncio.create_task(position_consume_task(state, pose_queue, DroneLink()), name="PositionConsumer"),
+        asyncio.create_task(position_consume_task(state, pose_queue ), name="PositionConsumer"),
         asyncio.create_task(fake_pose_producer_task(pose_queue, state), name="FakePoseProducer"),
     ]
 
