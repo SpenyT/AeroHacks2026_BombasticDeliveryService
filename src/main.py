@@ -1,3 +1,7 @@
+import os
+from dotenv import load_dotenv
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+
 from turbulence.turbulence import turbulence
 from rtm.rtm import rtm
 

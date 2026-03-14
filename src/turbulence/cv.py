@@ -1,46 +1,34 @@
 import cv2
-import os
+from .gemini import request_bound_box
 import numpy as np
+import os
+
+DISPLAY_HEIGHT = 480
+
+def resize(f):
+    w = int(f.shape[1] * DISPLAY_HEIGHT / f.shape[0])
+    return cv2.resize(f, (w, DISPLAY_HEIGHT))
 
 # NOT WORKING 100% BUT WILL BE FIXING IT - Spencer
 def detect_bound_box(frame):
-    gray_scale = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray_scale, (5,5), 0)
-    cage_edges = cv2.Canny(blurred, 20, 150)
-
-    kernel = np.ones((5, 5), np.uint8)
-    cage_edges = cv2.dilate(cage_edges, kernel, iterations=2)
-    cage_edges = cv2.erode(cage_edges, kernel, iterations=1)
-
-    contours, _ = cv2.findContours(cage_edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    largest = None # largest box essentially
-    largest_area = 0
-
-    APPROX_ERROR = 0.05
-
-    for cnt in contours:
-        area = cv2.contourArea(cnt)
-        if area < 1000:
-            continue
-
-        approx = cv2.approxPolyDP(cnt, APPROX_ERROR * cv2.arcLength(cnt, True), True)
-        print(f"area={area:.0f}, points={len(approx)}")
-        if 4 <= len(approx) <= 8 and area > largest_area:
-            largest = approx
-            largest_area = area
-
-    return largest
+    try:
+        return request_bound_box(frame)
+    except Exception as e:
+        print(f"[detect_bound_box] failed: {e}")
+        return None
 
 
 # ehhhhh... please test Tim, might have to alter hsv
 # FYI, I chose green and blue since they are opposite on hsv cone
 def detect_drone(frame, color: str = "green"):
-    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV) 
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
     if color == "green":
         mask = cv2.inRange(hsv, np.array([40, 120, 70]), np.array([80, 255, 255]))
     elif color == "blue":
         mask = cv2.inRange(hsv, np.array([100, 120, 70]), np.array([130, 255, 255]))
+    elif color == "red":
+        mask = cv2.inRange()
     else:
         print(f"Unknown color: {color}, use 'green' or 'blue'")
         return None
@@ -111,30 +99,18 @@ def draw_overlay(frame, bound_box, drone_pos=None, center_pos=None):
 # TEST FUNCS
 def test_bound_box():
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    img_path = os.path.join(base_dir, "test_images", "test.png")
+    img_path = os.path.join(base_dir, "test_images", "bb_test_1.jpg")
     frame = cv2.imread(img_path)
 
-    if frame is None:
-        print("Error: Could not read test.png")
-        return
+    box = detect_bound_box(frame)
     
-    cv2.imshow("Original", frame)
-    cv2.waitKey(0)
-
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    edges = cv2.Canny(blurred, 50, 150)
-    cv2.imshow("Edges", edges)
-    cv2.waitKey(0)
+    if box:
+        x, y, w, h = box
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 3)
+        print(f"Detected box: x={x}, y={y}, w={w}, h={h}")
+    else:
+        print("No box detected.")
     
-    bound_box =  detect_bound_box(frame)
-    if bound_box is None:
-        print("No bounding box detected")
-        cv2.destroyAllWindows()
-        return
-
-    frame = draw_overlay(frame, bound_box)
-    print(f"Bounding box detected: {bound_box}")
-    cv2.imshow("Bounding Box Test", frame)
+    cv2.imshow("Result", resize(frame))
     cv2.waitKey(0)
     cv2.destroyAllWindows()
