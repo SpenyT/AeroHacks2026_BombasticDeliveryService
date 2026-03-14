@@ -64,16 +64,51 @@ def detect_drone(frame, color: str = "green"):
     return (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
 
 
+def get_bbox_center(bbox):
+    if bbox is None:
+        return None
+    x, y, w, h = cv2.boundingRect(bbox)
+    return (x + w // 2, y + h // 2)
 
 
-def draw_overlay(frame, bound_box):
-    """Draw bounding box and drone position on frame."""
+
+
+# DRAW FUNCS
+def draw_bb_overlay(frame, bound_box):
     if bound_box is not None:
         cv2.drawContours(frame, [bound_box], -1, (0, 255, 0), 2)
 
     return frame
 
+def draw_drone_overlay(frame, drone_pos):
+    if drone_pos is None:
+        print("No drone position to draw.")
+        return frame
+    
+    cv2.circle(frame, drone_pos, 10, (0, 0, 255), -1)
+    cv2.putText(frame, f"Drone: {drone_pos}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+    return frame
 
+def draw_center_overlay(frame, center_pos):
+    if center_pos is None:
+        print("No center position to draw.")
+        return frame
+    
+    cv2.circle(frame, center_pos, 6, (255, 255, 0), -1)
+    return frame
+
+
+def draw_overlay(frame, bound_box, drone_pos=None, center_pos=None):
+    if bound_box is not None:
+        cv2.drawContours(frame, [bound_box], -1, (0, 255, 0), 2)
+    
+    frame = draw_drone_overlay(frame, drone_pos)
+    frame = draw_center_overlay(frame, center_pos)
+    return frame
+
+
+
+# TEST FUNCS
 def test_bound_box():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     img_path = os.path.join(base_dir, "test_images", "test.png")

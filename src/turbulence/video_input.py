@@ -26,9 +26,11 @@ class Cam():
             self.release()
 
 
+# change index (number) to get correct video feeds
 def video_input():
     return Cam(0, "Front Cam"), Cam(1, "Side Cam")
 
 
+# TEST FUNC
 def test_cam():
     return Cam(1, "Test Cam");
