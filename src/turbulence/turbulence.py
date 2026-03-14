@@ -28,6 +28,30 @@ def get_img(img_name: str):
     img_path = os.path.join(base_dir, "test_images", img_name)
     return cv2.imread(img_path)
 
+async def try_get_bbox(front_frame, side_frame, max_retries=3):
+    front_bbox = None
+    side_bbox = None
+
+    for attempt in range(max_retries):
+        print(f"Requesting bounding boxes... (attempt {attempt + 1}/{max_retries})")
+        
+        results = await asyncio.gather(
+            async_detect_bound_box(front_frame.copy()) if front_bbox is None else asyncio.sleep(0, result=front_bbox),
+            async_detect_bound_box(side_frame.copy()) if side_bbox is None else asyncio.sleep(0, result=side_bbox),
+        )
+        front_bbox, side_bbox = results
+
+        if front_bbox is not None and side_bbox is not None:
+            break
+
+        if front_bbox is None:
+            print("- Front bbox failed.")
+        if side_bbox is None:
+            print("- Side bbox failed.")
+
+    return front_bbox, side_bbox
+
+
 async def run(test_mode=False):
     if not test_mode:
         front_cam, side_cam = video_input()
@@ -35,11 +59,7 @@ async def run(test_mode=False):
     front_frame = resize(get_img("bb_test_1.jpg") if test_mode else front_cam.read())
     side_frame = resize(get_img("bb_test_2.jpg") if test_mode else side_cam.read())
 
-    print("Requesting both bounding boxes...")
-    front_bbox, side_bbox = await asyncio.gather(
-        async_detect_bound_box(front_frame.copy()),
-        async_detect_bound_box(side_frame.copy()),
-    )
+    front_bbox, side_bbox = await try_get_bbox(front_frame, side_frame)
 
     front_pipeline = CameraPipeline(front_bbox, get_bbox_center(front_bbox), FRONT_CAM_COLORS)
     side_pipeline  = CameraPipeline(side_bbox,  get_bbox_center(side_bbox),  SIDE_CAM_COLORS )
@@ -53,7 +73,7 @@ async def run(test_mode=False):
         front_frame, front_drone = front_pipeline.process(front_frame)
         side_frame, side_drone = side_pipeline.process(side_frame)
 
-        # Label each feed
+        # Label feeds
         cv2.putText(front_frame, "FRONT", (10, front_frame.shape[0] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
         cv2.putText(side_frame, "SIDE", (10, side_frame.shape[0] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
@@ -64,9 +84,11 @@ async def run(test_mode=False):
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
-    front_cam.release()
-    side_cam.release()
+    if not test_mode:
+        front_cam.release()
+        side_cam.release()
     cv2.destroyAllWindows()
+
 
 def turbulence():
     print("Initiating Turbulence Dampening Algorithm...")

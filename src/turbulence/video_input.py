@@ -33,4 +33,4 @@ def video_input(side_cam_index=0, back_cam_index=1):
 
 # TEST FUNC
 def test_cam():
-    return Cam(1, "Test Cam");
+    return Cam(1, "Test Cam")
