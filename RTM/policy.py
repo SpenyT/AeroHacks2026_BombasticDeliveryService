@@ -1,9 +1,6 @@
 from aerohacks.policy.base import Policy
 from aerohacks.core.models import Observation, Plan, ActionStep, ActionType, Position2D
 import math
-import json
-import os
-import glob
 import heapq
 
 # =============================================================================
@@ -846,162 +843,93 @@ def build_visibility_graph(start, goal, obstacles, layer, map_bounds, corridor_w
 
 
 # =============================================================================
-# SCENARIO LOADING
+# OBSERVATION-BASED DATA EXTRACTION (no JSON dependency)
 # =============================================================================
 
-def load_matching_scenario(obs):
-    """Find the public scenario JSON matching current observation."""
-    import sys
-
-    base_dirs = [
-        os.path.join(os.path.dirname(__file__), "..", "scenarios", "public"),
-        "scenarios/public",
-    ]
-
-    scenario_hint = None
-    for i, arg in enumerate(sys.argv):
-        if arg == '--scenario' and i + 1 < len(sys.argv):
-            scenario_hint = sys.argv[i + 1]
-            break
-
-    if scenario_hint:
-        for base_dir in base_dirs:
-            for candidate in [
-                os.path.join(base_dir, scenario_hint + ".json"),
-                os.path.join(base_dir, scenario_hint),
-                scenario_hint,
-            ]:
-                if os.path.exists(candidate):
-                    try:
-                        with open(candidate, "r") as f:
-                            data = json.load(f)
-                        return data
-                    except Exception:
-                        pass
-            try:
-                files = glob.glob(os.path.join(base_dir, "*.json"))
-                for path in files:
-                    try:
-                        with open(path, "r") as f:
-                            data = json.load(f)
-                        sid = data.get("scenario_id", "")
-                        if sid and sid in scenario_hint:
-                            return data
-                    except Exception:
-                        continue
-            except Exception:
-                pass
-
-    sx = obs.ownship_state.position.x
-    sy = obs.ownship_state.position.y
-
-    obs_constraint_ids = set()
-    try:
-        for c in obs.active_constraints:
-            try:
-                obs_constraint_ids.add(c.id)
-            except Exception:
-                pass
-    except Exception:
-        pass
-
-    goal_verts = []
-    try:
-        goal_verts = [(v.x, v.y) for v in obs.mission_goal.region.vertices]
-    except Exception:
-        pass
-
-    candidates = []
-    for base_dir in base_dirs:
-        try:
-            files = glob.glob(os.path.join(base_dir, "*.json"))
-        except Exception:
-            continue
-        for path in files:
-            try:
-                with open(path, "r") as f:
-                    data = json.load(f)
-                ss = data.get("start_state", {})
-                pos = ss.get("position", {})
-                if abs(pos.get("x", -1) - sx) < 1 and abs(pos.get("y", -1) - sy) < 1:
-                    score = 0
-                    if goal_verts:
-                        mg = data.get("mission_goal", {}).get("region", {})
-                        mg_verts = mg.get("vertices", [])
-                        if mg_verts:
-                            file_goal = [(v["x"], v["y"]) for v in mg_verts]
-                            if len(file_goal) == len(goal_verts) and all(
-                                abs(fv[0] - gv[0]) < 10 and abs(fv[1] - gv[1]) < 10
-                                for fv, gv in zip(file_goal, goal_verts)
-                            ):
-                                score += 10
-                    if obs_constraint_ids:
-                        perm_ids = {c.get("id", "") for c in data.get("permanent_constraints", [])}
-                        score += len(obs_constraint_ids & perm_ids) * 5
-                    candidates.append((score, path, data))
-            except Exception:
-                continue
-
-    if candidates:
-        candidates.sort(key=lambda x: -x[0])
-        best = candidates[0]
-        return best[2]
-
-    return None
-
-
-def parse_obstacles(scenario):
-    """Parse all static obstacles and permanent constraints from scenario."""
+def parse_obstacles_from_obs(obs):
+    """Parse all static obstacles and permanent constraints directly from observation."""
     obstacles = []
 
-    for s in scenario.get("static_obstacles", []):
-        if s.get("type") == "CircleRegion":
-            obstacles.append(Obstacle(
-                'circle',
-                (s["center_pos"]["x"], s["center_pos"]["y"], s["radius"]),
-                is_static=True
-            ))
-        else:
-            verts = [(v["x"], v["y"]) for v in s.get("vertices", [])]
-            if verts:
-                obstacles.append(Obstacle('polygon', verts, is_static=True))
+    # Static obstacles from obs.static_obstacles
+    try:
+        for s in obs.static_obstacles:
+            try:
+                # Try circle region
+                cx, cy, r = s.center_pos.x, s.center_pos.y, s.radius
+                obstacles.append(Obstacle('circle', (cx, cy, r), is_static=True))
+            except Exception:
+                try:
+                    # Try polygon region
+                    verts = [(v.x, v.y) for v in s.vertices]
+                    if verts:
+                        obstacles.append(Obstacle('polygon', verts, is_static=True))
+                except Exception:
+                    pass
+    except Exception:
+        pass
 
-    for c in scenario.get("permanent_constraints", []):
-        r = c["region"]
-        alts = c.get("alt_layers", [1, 2, 3, 4])
-        if r.get("type") == "CircleRegion":
-            obstacles.append(Obstacle(
-                'circle',
-                (r["center_pos"]["x"], r["center_pos"]["y"], r["radius"]),
-                alt_layers=alts
-            ))
-        else:
-            verts = [(v["x"], v["y"]) for v in r.get("vertices", [])]
-            if verts:
-                obstacles.append(Obstacle('polygon', verts, alt_layers=alts))
+    # Permanent constraints from obs.permanent_constraints
+    try:
+        for c in obs.permanent_constraints:
+            try:
+                r = c.region
+                alts = list(c.alt_layers) if hasattr(c, 'alt_layers') and c.alt_layers else [1, 2, 3, 4]
+                try:
+                    cx, cy, rad = r.center_pos.x, r.center_pos.y, r.radius
+                    obstacles.append(Obstacle('circle', (cx, cy, rad), alt_layers=alts))
+                except Exception:
+                    try:
+                        verts = [(v.x, v.y) for v in r.vertices]
+                        if verts:
+                            obstacles.append(Obstacle('polygon', verts, alt_layers=alts))
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+    except Exception:
+        pass
 
     return obstacles
 
 
-def parse_emergency_sites(scenario):
-    """Parse emergency landing sites."""
+def parse_emergency_sites_from_obs(obs):
+    """Parse emergency landing sites directly from observation."""
     sites = []
-    for s in scenario.get("emergency_landing_sites", []):
-        verts = s.get("region", {}).get("vertices", [])
-        if verts:
-            cx = sum(v["x"] for v in verts) / len(verts)
-            cy = sum(v["y"] for v in verts) / len(verts)
-            sites.append((cx, cy))
+    try:
+        for s in obs.emergency_landing_sites:
+            try:
+                # Try getting region vertices
+                verts = [(v.x, v.y) for v in s.region.vertices]
+                if verts:
+                    cx = sum(v[0] for v in verts) / len(verts)
+                    cy = sum(v[1] for v in verts) / len(verts)
+                    sites.append((cx, cy))
+            except Exception:
+                try:
+                    # Try circle region
+                    cx, cy = s.region.center_pos.x, s.region.center_pos.y
+                    sites.append((cx, cy))
+                except Exception:
+                    try:
+                        # Try position directly
+                        sites.append((s.position.x, s.position.y))
+                    except Exception:
+                        pass
+    except Exception:
+        pass
     return sites
 
 
-def get_map_bounds(scenario):
-    mb = scenario.get("map_boundaries", {})
-    verts = mb.get("vertices", [])
-    if verts:
-        xs = [v["x"] for v in verts]
-        ys = [v["y"] for v in verts]
-        return min(xs), max(xs), min(ys), max(ys)
+def get_map_bounds_from_obs(obs):
+    """Get map boundaries directly from observation."""
+    try:
+        verts = [(v.x, v.y) for v in obs.map_boundaries.vertices]
+        if verts:
+            xs = [v[0] for v in verts]
+            ys = [v[1] for v in verts]
+            return min(xs), max(xs), min(ys), max(ys)
+    except Exception:
+        pass
     return 0, 40000, 0, 40000
 
 
@@ -1013,7 +941,6 @@ class MyPolicy(Policy):
 
     def __init__(self):
         self.initialized = False
-        self.scenario = None
         self.obstacles = []            # Static + permanent constraints
         self.emergency_sites = []
         self.map_bounds = (0, 40000, 0, 40000)
@@ -1051,20 +978,14 @@ class MyPolicy(Policy):
         """One-time initialization from first observation."""
         self.initialized = True
 
-        self.scenario = load_matching_scenario(obs)
-
         start = (obs.ownship_state.position.x, obs.ownship_state.position.y)
         self.goal, self.goal_verts = self._extract_goal(obs, start)
         self.target_alt = obs.mission_goal.target_alt_layer if obs.mission_goal.target_alt_layer is not None else 1
 
-        if self.scenario:
-            self.obstacles = parse_obstacles(self.scenario)
-            self.map_bounds = get_map_bounds(self.scenario)
-            self.emergency_sites = parse_emergency_sites(self.scenario)
-            vl = self.scenario.get("vehicle_limits", {})
-            self.energy_decay = vl.get("energy_decay_rate", 0.1)
-            sc = self.scenario.get("scoring_config", {})
-            self.max_time = sc.get("max_time", 5000)
+        # Extract data directly from observation (no JSON needed)
+        self.obstacles = parse_obstacles_from_obs(obs)
+        self.map_bounds = get_map_bounds_from_obs(obs)
+        self.emergency_sites = parse_emergency_sites_from_obs(obs)
 
         # Initial layer selection
         self.current_layer = self._pick_best_layer(start, obs)
@@ -1081,12 +1002,6 @@ class MyPolicy(Policy):
             goal_verts_tuples = [(v.x, v.y) for v in verts]
         except Exception:
             pass
-
-        if not goal_verts_tuples and self.scenario:
-            mr = self.scenario.get("mission_goal", {}).get("region", {})
-            verts = mr.get("vertices", [])
-            if verts:
-                goal_verts_tuples = [(v["x"], v["y"]) for v in verts]
 
         if goal_verts_tuples:
             candidates = list(goal_verts_tuples)
