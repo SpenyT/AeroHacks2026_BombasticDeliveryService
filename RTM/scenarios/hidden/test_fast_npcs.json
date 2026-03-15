@@ -1,0 +1,175 @@
+{
+  "shrinking_notams": [
+    {
+      "id": "fast_notam_early",
+      "region": {
+        "type": "CircleRegion",
+        "center_pos": {"x": 12000, "y": 12000},
+        "radius": 1800
+      },
+      "alt_layers": [2, 3],
+      "advisory_start_time": 150,
+      "controlled_start_time": 300,
+      "restricted_start_time": 500
+    },
+    {
+      "id": "fast_notam_mid",
+      "region": {
+        "type": "PolygonRegion",
+        "vertices": [
+          {"x": 24000, "y": 22000},
+          {"x": 30000, "y": 22000},
+          {"x": 30000, "y": 28000},
+          {"x": 24000, "y": 28000}
+        ]
+      },
+      "alt_layers": [1, 2, 3],
+      "advisory_start_time": 900,
+      "controlled_start_time": 1100,
+      "restricted_start_time": 1300
+    }
+  ],
+  "traffic_traces": [
+    {
+      "id": "speed_demon_L1_east",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 3800,
+          "start_pos": {"x": 0, "y": 5000},
+          "velocity": {"x": 10.5, "y": 3.0},
+          "alt_layer": 1
+        }
+      ]
+    },
+    {
+      "id": "speed_demon_L1_west",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 3800,
+          "start_pos": {"x": 40000, "y": 12000},
+          "velocity": {"x": -10.0, "y": 4.0},
+          "alt_layer": 1
+        }
+      ]
+    },
+    {
+      "id": "speed_demon_L2_diag1",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 3800,
+          "start_pos": {"x": 0, "y": 0},
+          "velocity": {"x": 9.5, "y": 9.5},
+          "alt_layer": 2
+        }
+      ]
+    },
+    {
+      "id": "speed_demon_L2_diag2",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 3800,
+          "start_pos": {"x": 40000, "y": 0},
+          "velocity": {"x": -9.5, "y": 9.5},
+          "alt_layer": 2
+        }
+      ]
+    },
+    {
+      "id": "speed_demon_L3_north",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 3800,
+          "start_pos": {"x": 5000, "y": 0},
+          "velocity": {"x": 4.0, "y": 10.5},
+          "alt_layer": 3
+        }
+      ]
+    },
+    {
+      "id": "speed_demon_L3_south",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 3800,
+          "start_pos": {"x": 35000, "y": 40000},
+          "velocity": {"x": -3.0, "y": -10.5},
+          "alt_layer": 3
+        }
+      ]
+    },
+    {
+      "id": "speed_demon_L4_crisscross1",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 1900,
+          "start_pos": {"x": 2000, "y": 20000},
+          "velocity": {"x": 10.0, "y": 5.0},
+          "alt_layer": 4
+        },
+        {
+          "start_time": 1900,
+          "end_time": 3800,
+          "start_pos": {"x": 21000, "y": 29500},
+          "velocity": {"x": -8.0, "y": -6.0},
+          "alt_layer": 4
+        }
+      ]
+    },
+    {
+      "id": "speed_demon_L4_crisscross2",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 1900,
+          "start_pos": {"x": 38000, "y": 18000},
+          "velocity": {"x": -10.0, "y": 6.0},
+          "alt_layer": 4
+        },
+        {
+          "start_time": 1900,
+          "end_time": 3800,
+          "start_pos": {"x": 19000, "y": 29400},
+          "velocity": {"x": 9.0, "y": -4.0},
+          "alt_layer": 4
+        }
+      ]
+    },
+    {
+      "id": "goal_harasser_fast",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 2000,
+          "start_pos": {"x": 30000, "y": 30000},
+          "velocity": {"x": 5.0, "y": 3.5},
+          "alt_layer": 2
+        },
+        {
+          "start_time": 2000,
+          "end_time": 3800,
+          "start_pos": {"x": 40000, "y": 37000},
+          "velocity": {"x": -4.0, "y": -1.5},
+          "alt_layer": 2
+        }
+      ]
+    },
+    {
+      "id": "speed_demon_L2_late",
+      "segments": [
+        {
+          "start_time": 500,
+          "end_time": 3800,
+          "start_pos": {"x": 20000, "y": 0},
+          "velocity": {"x": 4.0, "y": 10.0},
+          "alt_layer": 2
+        }
+      ]
+    }
+  ]
+}

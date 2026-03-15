@@ -1,0 +1,94 @@
+{
+  "shrinking_notams": [
+    {
+      "id": "gauntlet_notam_gap1",
+      "region": {
+        "type": "CircleRegion",
+        "center_pos": {"x": 9000, "y": 16000},
+        "radius": 1500
+      },
+      "alt_layers": [1, 2, 3, 4],
+      "advisory_start_time": 300,
+      "controlled_start_time": 500,
+      "restricted_start_time": 700
+    },
+    {
+      "id": "gauntlet_notam_gap2",
+      "region": {
+        "type": "CircleRegion",
+        "center_pos": {"x": 29000, "y": 24000},
+        "radius": 1500
+      },
+      "alt_layers": [1, 2, 3, 4],
+      "advisory_start_time": 1200,
+      "controlled_start_time": 1500,
+      "restricted_start_time": 1800
+    },
+    {
+      "id": "gauntlet_notam_approach",
+      "region": {
+        "type": "PolygonRegion",
+        "vertices": [
+          {"x": 30000, "y": 32000},
+          {"x": 36000, "y": 32000},
+          {"x": 36000, "y": 35000},
+          {"x": 30000, "y": 35000}
+        ]
+      },
+      "alt_layers": [2, 3],
+      "advisory_start_time": 2000,
+      "controlled_start_time": 2300,
+      "restricted_start_time": 2600
+    }
+  ],
+  "traffic_traces": [
+    {
+      "id": "maze_runner_1",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 3800,
+          "start_pos": {"x": 11000, "y": 2000},
+          "velocity": {"x": 1.0, "y": 9.0},
+          "alt_layer": 2
+        }
+      ]
+    },
+    {
+      "id": "maze_runner_2",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 3800,
+          "start_pos": {"x": 25000, "y": 38000},
+          "velocity": {"x": 2.0, "y": -8.0},
+          "alt_layer": 3
+        }
+      ]
+    },
+    {
+      "id": "gap_blocker_1",
+      "segments": [
+        {
+          "start_time": 200,
+          "end_time": 1500,
+          "start_pos": {"x": 7000, "y": 14500},
+          "velocity": {"x": 2.0, "y": 0.5},
+          "alt_layer": 1
+        }
+      ]
+    },
+    {
+      "id": "gap_blocker_2",
+      "segments": [
+        {
+          "start_time": 800,
+          "end_time": 2200,
+          "start_pos": {"x": 27000, "y": 23000},
+          "velocity": {"x": 1.0, "y": 1.5},
+          "alt_layer": 2
+        }
+      ]
+    }
+  ]
+}

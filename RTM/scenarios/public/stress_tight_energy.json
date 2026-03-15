@@ -1,0 +1,83 @@
+{
+  "scenario_id": "stress_tight_energy",
+  "map_boundaries": {
+    "vertices": [
+      {"x": 0, "y": 0},
+      {"x": 40000, "y": 0},
+      {"x": 40000, "y": 40000},
+      {"x": 0, "y": 40000}
+    ]
+  },
+  "permanent_constraints": [
+    {
+      "id": "corridor_block",
+      "region": {
+        "type": "PolygonRegion",
+        "vertices": [
+          {"x": 15000, "y": 0},
+          {"x": 17000, "y": 0},
+          {"x": 17000, "y": 20000},
+          {"x": 15000, "y": 20000}
+        ]
+      },
+      "alt_layers": [1, 2, 3, 4]
+    }
+  ],
+  "static_obstacles": [
+    {
+      "type": "CircleRegion",
+      "center_pos": {"x": 25000, "y": 15000},
+      "radius": 900
+    }
+  ],
+  "emergency_landing_sites": [
+    {
+      "id": "em_mid",
+      "region": {
+        "vertices": [
+          {"x": 20000, "y": 25000},
+          {"x": 21000, "y": 25000},
+          {"x": 21000, "y": 26000},
+          {"x": 20000, "y": 26000}
+        ]
+      }
+    }
+  ],
+  "mission_goal": {
+    "region": {
+      "vertices": [
+        {"x": 37000, "y": 36000},
+        {"x": 39000, "y": 36000},
+        {"x": 39000, "y": 38000},
+        {"x": 37000, "y": 38000}
+      ]
+    },
+    "target_alt_layer": 1
+  },
+  "vehicle_limits": {
+    "max_horizontal_speed": 15.0,
+    "max_vertical_rate": 1,
+    "energy_decay_rate": 0.105,
+    "energy_reserve_threshold": 20.0
+  },
+  "scoring_config": {
+    "base_success_score": 1000.0,
+    "safe_emergency_landing_score": 300.0,
+    "controlled_phase_penalty": -50.0,
+    "restricted_phase_penalty": -200.0,
+    "separation_loss_penalty_advisory": -10.0,
+    "separation_loss_penalty_conflict": -150.0,
+    "collision_penalty": -500.0,
+    "battery_breach_penalty": -500.0,
+    "time_bonus_multiplier": 10.0,
+    "max_time": 3800
+  },
+  "start_state": {
+    "position": {"x": 1500, "y": 1500},
+    "alt_layer": 1,
+    "energy": 400.0,
+    "velocity": {"x": 0.0, "y": 0.0},
+    "heading": 0.0
+  },
+  "baseline_traffic_corridors": []
+}

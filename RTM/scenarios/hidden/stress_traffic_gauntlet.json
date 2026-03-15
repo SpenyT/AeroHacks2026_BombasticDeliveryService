@@ -1,0 +1,113 @@
+{
+  "shrinking_notams": [
+    {
+      "id": "notam_corridor_squeeze",
+      "region": {
+        "type": "PolygonRegion",
+        "vertices": [
+          {"x": 17000, "y": 16000},
+          {"x": 23000, "y": 16000},
+          {"x": 23000, "y": 24000},
+          {"x": 17000, "y": 24000}
+        ]
+      },
+      "alt_layers": [4],
+      "advisory_start_time": 600,
+      "controlled_start_time": 800,
+      "restricted_start_time": 1000
+    },
+    {
+      "id": "notam_upper_block",
+      "region": {
+        "type": "CircleRegion",
+        "center_pos": {"x": 20000, "y": 30000},
+        "radius": 3000
+      },
+      "alt_layers": [3, 4],
+      "advisory_start_time": 1200,
+      "controlled_start_time": 1400,
+      "restricted_start_time": 1600
+    }
+  ],
+  "traffic_traces": [
+    {
+      "id": "corridor_runner_1",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 3800,
+          "start_pos": {"x": 16500, "y": 10000},
+          "velocity": {"x": 0.5, "y": 8.0},
+          "alt_layer": 4
+        }
+      ]
+    },
+    {
+      "id": "corridor_runner_2",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 3800,
+          "start_pos": {"x": 23500, "y": 30000},
+          "velocity": {"x": -0.5, "y": -8.0},
+          "alt_layer": 4
+        }
+      ]
+    },
+    {
+      "id": "diagonal_cross_1",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 3800,
+          "start_pos": {"x": 0, "y": 0},
+          "velocity": {"x": 9.0, "y": 9.0},
+          "alt_layer": 3
+        }
+      ]
+    },
+    {
+      "id": "diagonal_cross_2",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 3800,
+          "start_pos": {"x": 40000, "y": 5000},
+          "velocity": {"x": -7.0, "y": 7.0},
+          "alt_layer": 2
+        }
+      ]
+    },
+    {
+      "id": "goal_circler",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 1900,
+          "start_pos": {"x": 34000, "y": 38000},
+          "velocity": {"x": 3.0, "y": -2.0},
+          "alt_layer": 2
+        },
+        {
+          "start_time": 1900,
+          "end_time": 3800,
+          "start_pos": {"x": 39700, "y": 34200},
+          "velocity": {"x": -3.0, "y": 2.0},
+          "alt_layer": 2
+        }
+      ]
+    },
+    {
+      "id": "ambush_layer4",
+      "segments": [
+        {
+          "start_time": 500,
+          "end_time": 2500,
+          "start_pos": {"x": 10000, "y": 15000},
+          "velocity": {"x": 6.0, "y": 5.0},
+          "alt_layer": 4
+        }
+      ]
+    }
+  ]
+}

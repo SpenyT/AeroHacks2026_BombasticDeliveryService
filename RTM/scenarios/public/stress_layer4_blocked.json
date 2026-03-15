@@ -1,0 +1,101 @@
+{
+  "scenario_id": "stress_layer4_blocked",
+  "map_boundaries": {
+    "vertices": [
+      {"x": 0, "y": 0},
+      {"x": 40000, "y": 0},
+      {"x": 40000, "y": 40000},
+      {"x": 0, "y": 40000}
+    ]
+  },
+  "permanent_constraints": [
+    {
+      "id": "wall_mid_all_layers",
+      "region": {
+        "type": "PolygonRegion",
+        "vertices": [
+          {"x": 18000, "y": 10000},
+          {"x": 22000, "y": 10000},
+          {"x": 22000, "y": 30000},
+          {"x": 18000, "y": 30000}
+        ]
+      },
+      "alt_layers": [1, 2, 3, 4]
+    },
+    {
+      "id": "gap_guard_top",
+      "region": {
+        "type": "CircleRegion",
+        "center_pos": {"x": 20000, "y": 32000},
+        "radius": 2500
+      },
+      "alt_layers": [3, 4]
+    }
+  ],
+  "static_obstacles": [
+    {
+      "type": "CircleRegion",
+      "center_pos": {"x": 20000, "y": 8000},
+      "radius": 1200
+    },
+    {
+      "type": "PolygonRegion",
+      "vertices": [
+        {"x": 30000, "y": 20000},
+        {"x": 31500, "y": 20000},
+        {"x": 31500, "y": 22000},
+        {"x": 30000, "y": 22000}
+      ]
+    }
+  ],
+  "emergency_landing_sites": [
+    {
+      "id": "em_1",
+      "region": {
+        "vertices": [
+          {"x": 10000, "y": 20000},
+          {"x": 11000, "y": 20000},
+          {"x": 11000, "y": 21000},
+          {"x": 10000, "y": 21000}
+        ]
+      }
+    }
+  ],
+  "mission_goal": {
+    "region": {
+      "vertices": [
+        {"x": 36000, "y": 35000},
+        {"x": 38000, "y": 35000},
+        {"x": 38000, "y": 37000},
+        {"x": 36000, "y": 37000}
+      ]
+    },
+    "target_alt_layer": 1
+  },
+  "vehicle_limits": {
+    "max_horizontal_speed": 15.0,
+    "max_vertical_rate": 1,
+    "energy_decay_rate": 0.1,
+    "energy_reserve_threshold": 20.0
+  },
+  "scoring_config": {
+    "base_success_score": 1000.0,
+    "safe_emergency_landing_score": 300.0,
+    "controlled_phase_penalty": -50.0,
+    "restricted_phase_penalty": -200.0,
+    "separation_loss_penalty_advisory": -10.0,
+    "separation_loss_penalty_conflict": -150.0,
+    "collision_penalty": -500.0,
+    "battery_breach_penalty": -500.0,
+    "time_bonus_multiplier": 10.0,
+    "max_time": 3800
+  },
+  "start_state": {
+    "position": {"x": 2000, "y": 2000},
+    "alt_layer": 2,
+    "energy": 420.0,
+    "velocity": {"x": 0.0, "y": 0.0},
+    "heading": 0.0
+  },
+  "baseline_traffic_corridors": []
+}

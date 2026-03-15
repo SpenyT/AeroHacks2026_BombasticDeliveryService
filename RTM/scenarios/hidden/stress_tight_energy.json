@@ -1,0 +1,65 @@
+{
+  "shrinking_notams": [
+    {
+      "id": "notam_detour_force",
+      "region": {
+        "type": "PolygonRegion",
+        "vertices": [
+          {"x": 10000, "y": 18000},
+          {"x": 14000, "y": 18000},
+          {"x": 14000, "y": 24000},
+          {"x": 10000, "y": 24000}
+        ]
+      },
+      "alt_layers": [1, 2, 3, 4],
+      "advisory_start_time": 300,
+      "controlled_start_time": 500,
+      "restricted_start_time": 700
+    },
+    {
+      "id": "notam_late_squeeze",
+      "region": {
+        "type": "CircleRegion",
+        "center_pos": {"x": 30000, "y": 30000},
+        "radius": 2500
+      },
+      "alt_layers": [1, 2],
+      "advisory_start_time": 1800,
+      "controlled_start_time": 2000,
+      "restricted_start_time": 2200
+    }
+  ],
+  "traffic_traces": [
+    {
+      "id": "head_on",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 3800,
+          "start_pos": {"x": 38000, "y": 38000},
+          "velocity": {"x": -8.0, "y": -8.0},
+          "alt_layer": 1
+        }
+      ]
+    },
+    {
+      "id": "side_sweep",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 2000,
+          "start_pos": {"x": 0, "y": 25000},
+          "velocity": {"x": 10.0, "y": 2.0},
+          "alt_layer": 2
+        },
+        {
+          "start_time": 2000,
+          "end_time": 3800,
+          "start_pos": {"x": 20000, "y": 29000},
+          "velocity": {"x": 6.0, "y": 4.0},
+          "alt_layer": 1
+        }
+      ]
+    }
+  ]
+}

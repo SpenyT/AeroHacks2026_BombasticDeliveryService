@@ -1,0 +1,98 @@
+{
+  "scenario_id": "stress_notam_cascade",
+  "map_boundaries": {
+    "vertices": [
+      {"x": 0, "y": 0},
+      {"x": 40000, "y": 0},
+      {"x": 40000, "y": 40000},
+      {"x": 0, "y": 40000}
+    ]
+  },
+  "permanent_constraints": [
+    {
+      "id": "perm_south_wall",
+      "region": {
+        "type": "PolygonRegion",
+        "vertices": [
+          {"x": 8000, "y": 8000},
+          {"x": 12000, "y": 8000},
+          {"x": 12000, "y": 12000},
+          {"x": 8000, "y": 12000}
+        ]
+      },
+      "alt_layers": [1, 2]
+    }
+  ],
+  "static_obstacles": [
+    {
+      "type": "PolygonRegion",
+      "vertices": [
+        {"x": 19000, "y": 19000},
+        {"x": 21000, "y": 19000},
+        {"x": 21000, "y": 21000},
+        {"x": 19000, "y": 21000}
+      ]
+    }
+  ],
+  "emergency_landing_sites": [
+    {
+      "id": "em_center",
+      "region": {
+        "vertices": [
+          {"x": 15000, "y": 15000},
+          {"x": 16000, "y": 15000},
+          {"x": 16000, "y": 16000},
+          {"x": 15000, "y": 16000}
+        ]
+      }
+    },
+    {
+      "id": "em_far",
+      "region": {
+        "vertices": [
+          {"x": 32000, "y": 32000},
+          {"x": 33000, "y": 32000},
+          {"x": 33000, "y": 33000},
+          {"x": 32000, "y": 33000}
+        ]
+      }
+    }
+  ],
+  "mission_goal": {
+    "region": {
+      "vertices": [
+        {"x": 36000, "y": 36000},
+        {"x": 38000, "y": 36000},
+        {"x": 38000, "y": 38000},
+        {"x": 36000, "y": 38000}
+      ]
+    },
+    "target_alt_layer": 1
+  },
+  "vehicle_limits": {
+    "max_horizontal_speed": 15.0,
+    "max_vertical_rate": 1,
+    "energy_decay_rate": 0.1,
+    "energy_reserve_threshold": 20.0
+  },
+  "scoring_config": {
+    "base_success_score": 1000.0,
+    "safe_emergency_landing_score": 300.0,
+    "controlled_phase_penalty": -50.0,
+    "restricted_phase_penalty": -200.0,
+    "separation_loss_penalty_advisory": -10.0,
+    "separation_loss_penalty_conflict": -150.0,
+    "collision_penalty": -500.0,
+    "battery_breach_penalty": -500.0,
+    "time_bonus_multiplier": 10.0,
+    "max_time": 3800
+  },
+  "start_state": {
+    "position": {"x": 2000, "y": 2000},
+    "alt_layer": 2,
+    "energy": 420.0,
+    "velocity": {"x": 0.0, "y": 0.0},
+    "heading": 0.0
+  },
+  "baseline_traffic_corridors": []
+}

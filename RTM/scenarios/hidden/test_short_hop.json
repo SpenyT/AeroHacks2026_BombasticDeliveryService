@@ -1,0 +1,143 @@
+{
+  "shrinking_notams": [
+    {
+      "id": "short_hop_notam_wall",
+      "region": {
+        "type": "PolygonRegion",
+        "vertices": [
+          {"x": 3000, "y": 2000},
+          {"x": 9000, "y": 2000},
+          {"x": 9000, "y": 4000},
+          {"x": 3000, "y": 4000}
+        ]
+      },
+      "alt_layers": [1, 2, 3, 4],
+      "advisory_start_time": 50,
+      "controlled_start_time": 150,
+      "restricted_start_time": 300
+    },
+    {
+      "id": "short_hop_notam_overhead",
+      "region": {
+        "type": "CircleRegion",
+        "center_pos": {"x": 5000, "y": 6000},
+        "radius": 2000
+      },
+      "alt_layers": [3, 4],
+      "advisory_start_time": 100,
+      "controlled_start_time": 250,
+      "restricted_start_time": 400
+    },
+    {
+      "id": "short_hop_notam_goal_cover",
+      "region": {
+        "type": "CircleRegion",
+        "center_pos": {"x": 8000, "y": 6000},
+        "radius": 1500
+      },
+      "alt_layers": [2, 3, 4],
+      "advisory_start_time": 200,
+      "controlled_start_time": 350,
+      "restricted_start_time": 500
+    },
+    {
+      "id": "short_hop_late_block",
+      "region": {
+        "type": "PolygonRegion",
+        "vertices": [
+          {"x": 6000, "y": 4000},
+          {"x": 10000, "y": 4000},
+          {"x": 10000, "y": 8000},
+          {"x": 6000, "y": 8000}
+        ]
+      },
+      "alt_layers": [1, 2, 3],
+      "advisory_start_time": 400,
+      "controlled_start_time": 600,
+      "restricted_start_time": 800
+    }
+  ],
+  "traffic_traces": [
+    {
+      "id": "close_pass_L1",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 3800,
+          "start_pos": {"x": 0, "y": 6000},
+          "velocity": {"x": 10.0, "y": 0.0},
+          "alt_layer": 1
+        }
+      ]
+    },
+    {
+      "id": "close_pass_L2",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 3800,
+          "start_pos": {"x": 10000, "y": 3000},
+          "velocity": {"x": -10.0, "y": 1.0},
+          "alt_layer": 2
+        }
+      ]
+    },
+    {
+      "id": "vertical_harasser",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 1500,
+          "start_pos": {"x": 5000, "y": 0},
+          "velocity": {"x": 0.5, "y": 10.0},
+          "alt_layer": 3
+        },
+        {
+          "start_time": 1500,
+          "end_time": 3000,
+          "start_pos": {"x": 5750, "y": 15000},
+          "velocity": {"x": 0.5, "y": -10.0},
+          "alt_layer": 2
+        },
+        {
+          "start_time": 3000,
+          "end_time": 3800,
+          "start_pos": {"x": 6500, "y": 0},
+          "velocity": {"x": 1.0, "y": 10.0},
+          "alt_layer": 1
+        }
+      ]
+    },
+    {
+      "id": "goal_guard_short",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 2000,
+          "start_pos": {"x": 8000, "y": 4500},
+          "velocity": {"x": 0.5, "y": 1.0},
+          "alt_layer": 1
+        },
+        {
+          "start_time": 2000,
+          "end_time": 3800,
+          "start_pos": {"x": 9000, "y": 6500},
+          "velocity": {"x": -0.8, "y": -0.5},
+          "alt_layer": 1
+        }
+      ]
+    },
+    {
+      "id": "sweeper_diagonal",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 3800,
+          "start_pos": {"x": 0, "y": 0},
+          "velocity": {"x": 8.0, "y": 8.0},
+          "alt_layer": 4
+        }
+      ]
+    }
+  ]
+}

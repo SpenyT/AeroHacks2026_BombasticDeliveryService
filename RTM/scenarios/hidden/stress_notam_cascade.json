@@ -1,0 +1,136 @@
+{
+  "shrinking_notams": [
+    {
+      "id": "cascade_1_early",
+      "region": {
+        "type": "CircleRegion",
+        "center_pos": {"x": 8000, "y": 14000},
+        "radius": 2000
+      },
+      "alt_layers": [3, 4],
+      "advisory_start_time": 100,
+      "controlled_start_time": 200,
+      "restricted_start_time": 350
+    },
+    {
+      "id": "cascade_2_path",
+      "region": {
+        "type": "PolygonRegion",
+        "vertices": [
+          {"x": 14000, "y": 12000},
+          {"x": 18000, "y": 12000},
+          {"x": 18000, "y": 18000},
+          {"x": 14000, "y": 18000}
+        ]
+      },
+      "alt_layers": [1, 2, 3, 4],
+      "advisory_start_time": 400,
+      "controlled_start_time": 600,
+      "restricted_start_time": 800
+    },
+    {
+      "id": "cascade_3_mid",
+      "region": {
+        "type": "CircleRegion",
+        "center_pos": {"x": 24000, "y": 22000},
+        "radius": 2500
+      },
+      "alt_layers": [2, 3, 4],
+      "advisory_start_time": 700,
+      "controlled_start_time": 900,
+      "restricted_start_time": 1100
+    },
+    {
+      "id": "cascade_4_late",
+      "region": {
+        "type": "CircleRegion",
+        "center_pos": {"x": 28000, "y": 28000},
+        "radius": 2000
+      },
+      "alt_layers": [1, 4],
+      "advisory_start_time": 1000,
+      "controlled_start_time": 1200,
+      "restricted_start_time": 1400
+    },
+    {
+      "id": "cascade_5_approach",
+      "region": {
+        "type": "PolygonRegion",
+        "vertices": [
+          {"x": 32000, "y": 32000},
+          {"x": 36000, "y": 32000},
+          {"x": 36000, "y": 36000},
+          {"x": 32000, "y": 36000}
+        ]
+      },
+      "alt_layers": [2, 3, 4],
+      "advisory_start_time": 1300,
+      "controlled_start_time": 1500,
+      "restricted_start_time": 1700
+    },
+    {
+      "id": "cascade_6_goal_area",
+      "region": {
+        "type": "CircleRegion",
+        "center_pos": {"x": 37000, "y": 37000},
+        "radius": 1500
+      },
+      "alt_layers": [2, 3, 4],
+      "advisory_start_time": 1800,
+      "controlled_start_time": 2200,
+      "restricted_start_time": 2600
+    }
+  ],
+  "traffic_traces": [
+    {
+      "id": "sweeper_low",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 3800,
+          "start_pos": {"x": 5000, "y": 35000},
+          "velocity": {"x": 8.0, "y": -6.0},
+          "alt_layer": 1
+        }
+      ]
+    },
+    {
+      "id": "sweeper_high",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 3800,
+          "start_pos": {"x": 35000, "y": 5000},
+          "velocity": {"x": -5.0, "y": 8.0},
+          "alt_layer": 4
+        }
+      ]
+    },
+    {
+      "id": "zigzag",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 1500,
+          "start_pos": {"x": 20000, "y": 5000},
+          "velocity": {"x": 3.0, "y": 10.0},
+          "alt_layer": 3
+        },
+        {
+          "start_time": 1500,
+          "end_time": 3000,
+          "start_pos": {"x": 24500, "y": 20000},
+          "velocity": {"x": 5.0, "y": 6.0},
+          "alt_layer": 2
+        },
+        {
+          "start_time": 3000,
+          "end_time": 3800,
+          "start_pos": {"x": 32000, "y": 29000},
+          "velocity": {"x": 4.0, "y": 5.0},
+          "alt_layer": 1
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "shrinking_notams": [
+    {
+      "id": "notam_gate_south",
+      "region": {
+        "type": "CircleRegion",
+        "center_pos": {"x": 20000, "y": 5000},
+        "radius": 1800
+      },
+      "alt_layers": [1, 2, 3, 4],
+      "advisory_start_time": 200,
+      "controlled_start_time": 400,
+      "restricted_start_time": 600
+    },
+    {
+      "id": "notam_mid_block",
+      "region": {
+        "type": "PolygonRegion",
+        "vertices": [
+          {"x": 24000, "y": 14000},
+          {"x": 28000, "y": 14000},
+          {"x": 28000, "y": 18000},
+          {"x": 24000, "y": 18000}
+        ]
+      },
+      "alt_layers": [3, 4],
+      "advisory_start_time": 800,
+      "controlled_start_time": 1000,
+      "restricted_start_time": 1200
+    },
+    {
+      "id": "notam_goal_approach",
+      "region": {
+        "type": "CircleRegion",
+        "center_pos": {"x": 33000, "y": 33000},
+        "radius": 2000
+      },
+      "alt_layers": [2, 3, 4],
+      "advisory_start_time": 1500,
+      "controlled_start_time": 1800,
+      "restricted_start_time": 2100
+    }
+  ],
+  "traffic_traces": [
+    {
+      "id": "blocker_layer4",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 3800,
+          "start_pos": {"x": 5000, "y": 5000},
+          "velocity": {"x": 7.0, "y": 7.0},
+          "alt_layer": 4
+        }
+      ]
+    },
+    {
+      "id": "cross_mid",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 3800,
+          "start_pos": {"x": 38000, "y": 10000},
+          "velocity": {"x": -9.0, "y": 5.0},
+          "alt_layer": 3
+        }
+      ]
+    },
+    {
+      "id": "goal_patrol",
+      "segments": [
+        {
+          "start_time": 0,
+          "end_time": 2000,
+          "start_pos": {"x": 35000, "y": 34000},
+          "velocity": {"x": 2.0, "y": 1.5},
+          "alt_layer": 1
+        },
+        {
+          "start_time": 2000,
+          "end_time": 3800,
+          "start_pos": {"x": 39000, "y": 37000},
+          "velocity": {"x": -3.0, "y": -1.0},
+          "alt_layer": 1
+        }
+      ]
+    }
+  ]
+}
