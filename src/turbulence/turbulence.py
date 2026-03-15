@@ -9,10 +9,11 @@ from .cv import *
 DISPLAY_HEIGHT = 480
 
 # options
-SIDE_CAM_INDEX  = 0
 FRONT_CAM_INDEX = 1
-SIDE_CAM_COLORS  = ("", "")
-FRONT_CAM_COLORS = ("", "")
+SIDE_CAM_INDEX  = 0
+FRONT_CAM_COLORS = ("blue", "green")
+SIDE_CAM_COLORS  = ("green", "red")
+
 
 TEST_MODE = True
 
@@ -21,6 +22,14 @@ LEFT_BBOX         = ()
 LEFT_BBOX_CENTER  = ()
 FRONT_BBOX        = ()
 FRONT_BBOX_CENTER = ()
+
+def fake_bbox(frame):
+    h, w = frame.shape[:2]
+    bw = int(w * 0.6)
+    bh = int(h * 0.6)
+    x = (w - bw) // 2
+    y = (h - bh) // 2
+    return (x, y, bw, bh)
 
 
 def get_img(img_name: str):
@@ -53,31 +62,36 @@ async def try_get_bbox(front_frame, side_frame, max_retries=3):
 
 
 async def run(test_mode=False):
+    front_img_name = "drone_test_bg.jpg"
+    side_img_name  = "drone_test_gr.jpg"
+
     if not test_mode:
         front_cam, side_cam = video_input()
 
-    front_frame = resize(get_img("bb_test_1.jpg") if test_mode else front_cam.read())
-    side_frame = resize(get_img("bb_test_2.jpg") if test_mode else side_cam.read())
+    front_frame = resize(get_img(front_img_name) if test_mode else front_cam.read())
+    side_frame = resize(get_img(side_img_name) if test_mode else side_cam.read())
 
-    front_bbox, side_bbox = await try_get_bbox(front_frame, side_frame)
+    if test_mode:
+        front_bbox = fake_bbox(front_frame)
+        side_bbox = fake_bbox(side_frame)
+    else:
+        front_bbox, side_bbox = await try_get_bbox(front_frame, side_frame)
 
     front_pipeline = CameraPipeline(front_bbox, get_bbox_center(front_bbox), FRONT_CAM_COLORS)
-    side_pipeline  = CameraPipeline(side_bbox,  get_bbox_center(side_bbox),  SIDE_CAM_COLORS )
+    side_pipeline  = CameraPipeline(side_bbox,  get_bbox_center(side_bbox),  SIDE_CAM_COLORS)
 
     print(f"Running {'(TEST MODE)' if test_mode else ''}... Press 'q' to quit")
 
     while True:
-        front_frame = resize(get_img("bb_test_1.jpg")) if TEST_MODE else resize(front_cam.read())
-        side_frame  = resize(get_img("bb_test_2.jpg")) if TEST_MODE else resize(side_cam.read())
+        front_frame = resize(get_img(front_img_name) if test_mode else front_cam.read())
+        side_frame  = resize(get_img(side_img_name) if test_mode else side_cam.read())
 
         front_frame, front_drone = front_pipeline.process(front_frame)
         side_frame, side_drone = side_pipeline.process(side_frame)
 
-        # Label feeds
         cv2.putText(front_frame, "FRONT", (10, front_frame.shape[0] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
         cv2.putText(side_frame, "SIDE", (10, side_frame.shape[0] - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
-        # honestly, me and the hommies hate the padding
         combined = np.hstack([front_frame, side_frame])
         cv2.imshow("Drone Tracker", combined)
 

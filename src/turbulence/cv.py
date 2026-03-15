@@ -50,7 +50,7 @@ def detect_led(frame, color_str):
 
     else:
         return None
-    
+
     # removes smaller blobs of color - fyi DONT TOUCH *smacks hand*
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
     mask = cv2.dilate(mask, kernel, iterations=1)
@@ -121,7 +121,7 @@ def draw_drone_overlay(frame, drone_pos):
     if drone_pos is None:
         print("No drone position to draw.")
         return frame
-    
+
     cv2.circle(frame, drone_pos, 10, (0, 0, 255), -1)
     cv2.putText(frame, f"Drone: {drone_pos}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
     return frame
@@ -130,7 +130,7 @@ def draw_center_overlay(frame, center_pos):
     if center_pos is None:
         print("No center position to draw.")
         return frame
-    
+
     cv2.circle(frame, center_pos, 6, (255, 255, 0), -1)
     return frame
 
@@ -173,7 +173,7 @@ def test_bound_box():
     frame = cv2.imread(img_path)
 
     box = async_detect_bound_box(frame)
-    
+
     if box:
         x, y, w, h = box
         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 3)
