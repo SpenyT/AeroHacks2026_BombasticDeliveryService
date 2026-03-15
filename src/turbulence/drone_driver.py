@@ -16,6 +16,10 @@ from dataclasses import dataclass
 
 from mock_socket import MockSocket
 
+import sys
+
+
+
 DRONE_IP = "192.168.4.1"
 DRONE_PORT = 8080
 
@@ -32,6 +36,9 @@ s.connect((DRONE_IP, DRONE_PORT))
 
 # s = MockSocket()
 
+def log(msg: str):
+    sys.stdout.write(f"\r{msg}\r\n")
+    sys.stdout.flush()
 
 def _clamp(v, lo=MIN_THRUST, hi=MAX_THRUST):
     """
@@ -66,6 +73,7 @@ def msg(tx: str) -> str:
     """
     with _lock:
         try:
+            log(f"> {tx}")
             s.sendall((tx + "\n").encode("ASCII"))
 
             data = b""
@@ -79,11 +87,16 @@ def msg(tx: str) -> str:
             # first one and leaving the rest for the next call
             if b"\n" in data:
                 line, _ = data.split(b"\n", 1)
-                return line.decode("ascii")
+                resp = line.decode("ascii")
+                log(f"< {resp}")
+                return resp
 
-            return data[:-1].decode("ASCII")
+            resp = data[:-1].decode("ASCII")
+            log(f"< {resp}")
+            return resp
 
         except Exception as e:
+            log(f"! Communication error: {e}")
             try:
                 emergency_stop()
             except Exception:
@@ -98,6 +111,7 @@ def emergency_stop():
     This sends ``mode0`` to the drone, which shuts off all motor output.
     """
     try:
+        log("> mode0 (EMERGENCY STOP)")
         s.sendall(b"mode0\n")
     except Exception:
         pass
@@ -165,7 +179,7 @@ def set_mode(m: Modes):
     """
     if m not in (0, 1, 2):
         raise ValueError("Mode must be 0, 1 or 2")
-    msg(f"mode{m}")
+    msg(f"mode{int(m)}")
 
 
 def get_mode():
@@ -179,7 +193,7 @@ def get_mode():
         >>> get_mode()
         Modes.Pid
     """
-    return Modes[msg("gMode")]
+    return Modes(int(msg("gMode")))
 
 
 def manual_thrusts(thrust: Thrust):
@@ -194,13 +208,23 @@ def manual_thrusts(thrust: Thrust):
 
     In ``Modes.Pid`` this sets the **baseline thrust**, while the PID controller
     adds corrections for stabilization.
+
+    A --- B
+    |     |
+    C --- D
+
+
     """
+    # A = _clamp(thrust.A-40)
+    # B = _clamp(thrust.B-42)
+    # C = _clamp(thrust.C+2)
+    # D = _clamp(thrust.D-0)
     A = _clamp(thrust.A)
     B = _clamp(thrust.B)
     C = _clamp(thrust.C)
     D = _clamp(thrust.D)
 
-    msg(f"manT\n{A},{B},{C},{D}")
+    msg(f"manT\n{A},{B},{C},{D}\n")
 
 
 def get_pitch():
@@ -372,3 +396,16 @@ def green_LED_off():
     Turns off the BLUE LED on the drone
     """
     _green_LED(0)
+
+
+# the following functions only work if firmware 1.2 or higher is installed on the drone
+# if you want to use this, please make sure by running msg("vers")
+
+# use at start of code if you want to use the drone outside of the cage. Overrides all mode changes
+def lock_props():
+    msg("lck")
+
+# recalibrates the gyroscope.
+# Do not communicate with the drone for 15 seconds after calling this
+def recalibrate():
+    msg("rst")

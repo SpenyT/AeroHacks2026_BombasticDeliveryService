@@ -9,16 +9,7 @@ class MockSocket:
         print(f"[mock] connected to {addr}")
 
     def sendall(self, data):
-        cmd = data.decode().strip()
-
-        if cmd == "gMode":
-            self.buffer = b"2\n"
-
-        elif cmd.startswith("mode"):
-            self.buffer = b"ok\n"
-
-        else:
-            self.buffer = b"ok\n"
+        self.buffer += self._fake_response(data)
 
     def recv(self, n):
         if not self.buffer:

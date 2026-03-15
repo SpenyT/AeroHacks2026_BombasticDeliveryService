@@ -3,11 +3,11 @@ import asyncio
 import math, time, contextlib, sys, tty
 import termios
 from contextlib import suppress
-import drone_driver
+from typing import Optional
 
-def log(msg: str):
-    sys.stdout.write("\r" + msg + "\n")
-    sys.stdout.flush()
+import drone_driver
+from drone_driver import log
+import os
 
 @dataclass
 class PositionEstimate:
@@ -18,36 +18,65 @@ class PositionEstimate:
     yaw: float
     valid: bool = True
 
+@dataclass()
+class DroneState:
+    roll: float
+    pitch: float
+    yaw: float
+    position: Optional[ PositionEstimate ] = None
 
 class DroneController: 
     def __init__(self ) -> None:
         self.enabled = asyncio.Event()
         self.shutdown = asyncio.Event()
+        self.manual_override = False 
         self.baseline_thrust = 120
+        self.state = DroneState(pitch=0, roll=0, yaw=0)
 
     def send_pid_commands(self, roll, pitch, yaw_rate):
         drone_driver.set_roll(roll)
         drone_driver.set_pitch(pitch)
         drone_driver.set_yaw(yaw_rate)
 
-    def send_position_target(self, x, y, z, yaw): ...
-    def send_external_pose(self, pose): ...
-    def set_param(self, name, value): ...
-    def subscribe_log(self, variables, period_ms): ...
-
     def is_running(self) -> bool:
         return self.enabled.is_set() and not self.shutdown.is_set()
 
-    def start(self) -> None:
+    async def start(self) -> None:
         self.enabled.set()
         drone_driver.set_mode(drone_driver.Modes.Pid)
-        time.sleep(0.1)
-        assert drone_driver.get_mode() == drone_driver.Modes.Pid, "Failed to set drone mode"
+        await asyncio.sleep(1)
+        mode = drone_driver.get_mode()
+        log(f"mode: {mode}")
+
+        if drone_driver.get_mode() != drone_driver.Modes.Pid:
+            raise RuntimeError(f"wrong mode returned {drone_driver.get_mode()}")
 
         # TODO move somewhere else, this only needs to be done once
         self.turn_on_leds()
 
-        # self.send_baseline_thrust()
+        drone_driver.reset_integral()
+        
+        pitch = drone_driver.get_pitch()
+        roll = drone_driver.get_roll()
+
+        log(f"pitch start: {pitch}")
+        log(f"roll start: {roll}")
+
+        self.state.pitch = pitch
+        self.state.roll = roll
+
+        drone_driver.set_pitch(-pitch)
+        drone_driver.set_roll(-roll)
+
+        drone_driver.set_yaw(0)
+
+        drone_driver.reset_integral()
+
+        drone_driver.set_p_gain(0.15)
+        drone_driver.set_i_gain(0.00002)
+        drone_driver.set_d_gain(5)
+
+        self.send_baseline_thrust()
 
     def stop(self) -> None:
         self.emergency_stop()
@@ -58,9 +87,8 @@ class DroneController:
         self.shutdown.set()
 
     def turn_on_leds(self):
-        log("Turning on LEDs...")
         drone_driver.blue_LED_on()
-        drone_driver.red_LED_on()
+        # drone_driver.red_LED_on()
         drone_driver.green_LED_on()
 
     def send_baseline_thrust(self) -> None:
@@ -68,7 +96,7 @@ class DroneController:
         drone_driver.manual_thrusts(baseline_thrust)
 
     def increase_thrust(self, delta: int) -> None:
-        self.baseline_thrust += delta
+        self.baseline_thrust = drone_driver._clamp(self.baseline_thrust + delta)
         self.send_baseline_thrust()
 
     def emergency_stop(self) -> None:
@@ -77,83 +105,20 @@ class DroneController:
     def close_connection(self) -> None:
         drone_driver.close()
     
+    def log_status(self):
+        pitch = drone_driver.get_pitch()
+        roll = drone_driver.get_roll()
+
+        gyro_pitch = drone_driver.get_gyro_pitch()
+        gyro_roll = drone_driver.get_gyro_roll()
+
+        log(f"pitch={pitch} roll={roll} gyro_pitch={gyro_pitch} gyro_roll={gyro_roll}")
 
 
-        
-# async def keyboard_task(controller: DroneController) -> None:
-#     """
-#     Reads single key presses asynchronously.
-
-#     Keys:
-#       w -> forward
-#       s -> backward
-#       d -> right
-#       a -> left
-#       j -> clockwize yaw
-#       k -> counterclockwize yaw
-#       i -> up
-#       o -> down
-
-#       1 -> start
-#       2 -> stop
-#       3 -> status
-#       q -> quit
-#       h -> help
-#     """
-
-#     log("\nKeyboard commands: s=start | x=stop | d=status | q=quit | h=help")
-
-#     loop = asyncio.get_running_loop()
-
-#     # Save terminal settings
-#     fd = sys.stdin.fileno()
-#     old_settings = termios.tcgetattr(fd)
-
-#     try:
-#         # Set raw mode so keypresses are delivered immediately
-#         tty.setraw(fd)
-
-#         while not controller.shutdown.is_set():
-#             char = await loop.run_in_executor(None, sys.stdin.read, 1)
-#             cmd = char.lower()
-
-#             match cmd:
-#                 case "w":
-#                     log("\n[kbd] forward")
-#                     controller.send_pid_commands(roll=0, pitch=-10, yaw_rate=0, thrust=0)
-
-#                 case "s"
-
-#             if cmd == "s":
-#                 controller.start()
-#                 log("\n[kbd] control ENABLED")
-
-#             elif cmd == "x":
-#                 controller.stop()
-#                 log("\n[kbd] control DISABLED")
-
-#             elif cmd == "d":
-#                 log(
-#                     f"[kbd] running={controller.is_running()} "
-#                     f"shutdown={controller.shutdown.is_set()}"
-#                 )
-
-#             elif cmd == "q":
-#                 log("\n[kbd] shutting down")
-#                 controller.request_shutdown()
-
-#             elif cmd == "h":
-#                 log("\nKeys: s=start | x=stop | d=status | q=quit | h=help")
-
-#             else:
-#                 pass
-
-#     finally:
-#         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
 async def keyboard_task(controller: DroneController) -> None:
     """
-    Reads single key presses asynchronously.
+    Reads single key presses asynchronously and auto-stops the drone when no key is held.
 
     Keys
     ----
@@ -176,84 +141,126 @@ async def keyboard_task(controller: DroneController) -> None:
     log("\n [kbd] Keyboard commands: w/s/a/d move | j/k yaw | i/o thrust | 1 start | 2 stop | 3 status | q quit")
 
     loop = asyncio.get_running_loop()
-
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
 
+    os.set_blocking(fd, False)
+
+    def on_input():
+        try:
+            char = os.read(fd, 1).decode('utf-8')
+            if char:
+                queue.put_nowait(char.lower())
+        except BlockingIOError:
+            pass
+
+
+    queue = asyncio.Queue()
+
     try:
-        # tty.setraw(fd)
-        tty.setcbreak(fd)
+        # setcbreak so keys are read immediately without requiring Enter
+        tty.setraw(fd)
+        loop.add_reader(fd, on_input)
+
+        is_moving = False
 
         while not controller.shutdown.is_set():
-            char = await loop.run_in_executor(None, sys.stdin.read, 1)
-            cmd = char.lower()
+            try:
+                # Wait for key press. If we don't get one within 0.2s, timeout triggers hover reset
+                cmd = await asyncio.wait_for(queue.get(), timeout=0.3)
+                
+                match cmd:
+                    # movement
+                    case "w":
+                        log("\n[kbd] forward")
+                        controller.manual_override = True
+                        pitch = controller.state.pitch
+                        roll = controller.state.roll
 
-            match cmd:
+                        controller.send_pid_commands(roll=0, pitch=-10, yaw_rate=0)
+                        is_moving = True
 
-                # movement
-                case "w":
-                    log("\n[kbd] forward")
-                    controller.send_pid_commands(roll=0, pitch=-10, yaw_rate=0)
+                    case "s":
+                        log("\n[kbd] backward")
+                        controller.manual_override = True
+                        controller.send_pid_commands(roll=0, pitch=10, yaw_rate=0)
+                        is_moving = True
 
-                case "s":
-                    log("\n[kbd] backward")
-                    controller.send_pid_commands(roll=0, pitch=10, yaw_rate=0)
+                    case "a":
+                        log("\n[kbd] left")
+                        controller.manual_override = True
+                        controller.send_pid_commands(roll=-10, pitch=0, yaw_rate=0)
+                        is_moving = True
 
-                case "a":
-                    log("\n[kbd] left")
-                    controller.send_pid_commands(roll=-10, pitch=0, yaw_rate=0)
+                    case "d":
+                        log("\n[kbd] right")
+                        controller.manual_override = True
+                        controller.send_pid_commands(roll=10, pitch=0, yaw_rate=0)
+                        is_moving = True
 
-                case "d":
-                    log("\n[kbd] right")
-                    controller.send_pid_commands(roll=10, pitch=0, yaw_rate=0)
+                    case "j":
+                        log("\n[kbd] yaw clockwise")
+                        controller.manual_override = True
+                        controller.send_pid_commands(roll=0, pitch=0, yaw_rate=10)
+                        is_moving = True
 
-                # yaw
-                case "j":
-                    log("\n[kbd] yaw clockwise")
-                    controller.send_pid_commands(roll=0, pitch=0, yaw_rate=10)
+                    case "k":
+                        log("\n[kbd] yaw counter-clockwise")
+                        controller.manual_override = True
+                        controller.send_pid_commands(roll=0, pitch=0, yaw_rate=-10)
+                        is_moving = True
 
-                case "k":
-                    log("\n[kbd] yaw counter-clockwise")
-                    controller.send_pid_commands(roll=0, pitch=0, yaw_rate=-10)
+                    # altitude
+                    case "i":
+                        log("\n[kbd] up")
+                        controller.manual_override = True
+                        controller.increase_thrust(10)
+                        is_moving = True
 
-                # altitude
-                case "i":
-                    log("\n[kbd] up")
-                    controller.increase_thrust(10)
+                    case "o":
+                        log("\n[kbd] down")
+                        controller.manual_override = True
+                        controller.increase_thrust(-10)
+                        is_moving = True
 
-                case "o":
-                    log("\n[kbd] down")
-                    controller.increase_thrust(-10)
+                    # controller state
+                    case "1":
+                        await controller.start()
+                        log("\n[kbd] control ENABLED")
 
-                # controller state
-                case "1":
-                    controller.start()
-                    log("\n[kbd] control ENABLED")
+                    case "2":
+                        controller.stop()
+                        log("\n[kbd] control DISABLED")
 
-                case "2":
-                    controller.stop()
-                    log("\n[kbd] control DISABLED")
+                    case "3":
+                        # controller.log_status()
+                        log(
+                            f"[kbd] running={controller.is_running()} "
+                            f"shutdown={controller.shutdown.is_set()}"
+                        )
 
-                case "3":
-                    log(
-                        f"[kbd] running={controller.is_running()} "
-                        f"shutdown={controller.shutdown.is_set()}"
-                    )
+                    case "q":
+                        log("\n[kbd] shutting down")
+                        controller.request_shutdown()
 
-                case "q":
-                    log("\n[kbd] shutting down")
-                    controller.request_shutdown()
+                    case "h":
+                        log(
+                            "Keys: w/s/a/d move | j/k yaw | i/o thrust | "
+                            "1 start | 2 stop | 3 status | q quit"
+                        )
 
-                case "h":
-                    log(
-                        "Keys: w/s/a/d move | j/k yaw | i/o thrust | "
-                        "1 start | 2 stop | 3 status | q quit"
-                    )
+                    case _:
+                        pass
 
-                case _:
-                    pass
+            except asyncio.TimeoutError:
+                # If no key was pressed and we previously sent movement commands, stop moving.
+                if is_moving and controller.is_running():
+                    controller.manual_override = False
+                    # controller.send_pid_commands(roll=0, pitch=0, yaw_rate=0)
+                    is_moving = False
 
     finally:
+        loop.remove_reader(fd)
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
 
@@ -265,6 +272,10 @@ async def position_consume_task(state: DroneController, position_queue: asyncio.
     latest_position: PositionEstimate | None = None
 
     while not state.shutdown.is_set():
+
+        if state.manual_override:
+            await asyncio.sleep(0.1)
+            continue  
         try:
             pose = await asyncio.wait_for(position_queue.get(), timeout=0.2)
             latest_position = pose
@@ -341,11 +352,17 @@ async def fake_pose_producer_task(
 async def main() -> None:
     state = DroneController()
 
+    log("---- IMU status ----")
+    log(f"pitch={drone_driver.get_pitch()}")
+    log(f"roll={drone_driver.get_roll()}")
+    log(f"gyro_pitch={drone_driver.get_gyro_pitch()}")
+    log(f"gyro_roll={drone_driver.get_gyro_roll()}")
+
     pose_queue: asyncio.Queue[PositionEstimate] = asyncio.Queue(maxsize=10)
 
     tasks = [
         asyncio.create_task(keyboard_task(state), name="Keyboard"),
-        # asyncio.create_task(position_consume_task(state, pose_queue ), name="PositionConsumer"),
+        asyncio.create_task(position_consume_task(state, pose_queue ), name="PositionConsumer"),
         # asyncio.create_task(fake_pose_producer_task(pose_queue, state), name="FakePoseProducer"),
     ]
 
